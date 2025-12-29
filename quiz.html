@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>單字測驗 (Vocabulary Quiz)</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --fail: #e74c3c;
+            --bg: #f5f7fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 { color: #333; margin-bottom: 1.5rem; }
+        
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .btn:hover { background-color: #357abd; transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-option {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            text-align: left;
+            background-color: #fff;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-option:hover { background-color: #f0f8ff; border-color: var(--primary); }
+
+        .question-box {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #2c3e50;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+        }
+
+        .phonetic {
+            display: block;
+            font-size: 1rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-weight: normal;
+        }
+
+        .hidden { display: none; }
+
+        .result-pass { color: var(--success); font-weight: bold; font-size: 1.5rem; }
+        .result-fail { color: var(--fail); font-weight: bold; font-size: 1.5rem; }
+        
+        .progress {
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Result Table */
+        .result-details {
+            margin-top: 20px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+        }
+        .review-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .review-item.wrong { color: var(--fail); }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+    <div id="start-screen">
+        <h1>單字測驗挑戰</h1>
+        <p>資料庫共 42 個單字<br>通過標準：答對率 60%</p>
+        <button class="btn" onclick="startQuiz('en-zh')">看英文 -> 選中文</button>
+        <button class="btn" onclick="startQuiz('zh-en')">看中文 -> 選英文</button>
+    </div>
+
+    <div id="quiz-screen" class="hidden">
+        <div class="progress">題數: <span id="current-q">1</span> / <span id="total-q">10</span></div>
+        <div class="question-box" id="question-text">
+            </div>
+        <div id="options-container">
+            </div>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h1>測驗結果</h1>
+        <p id="score-text"></p>
+        <div id="pass-fail-msg"></div>
+        <button class="btn" onclick="location.reload()">重新測驗</button>
+        
+        <div class="result-details" id="review-list">
+            </div>
+    </div>
+</div>
+
+<script>
+    // 單字資料庫 (根據圖片內容建立)
+    const vocabData = [
+        { id: 1, en: "apartment", ph: "[ə`partmənt]", zh: "公寓" },
+        { id: 2, en: "glad", ph: "[glæd]", zh: "高興的" },
+        { id: 3, en: "town", ph: "[taʊn]", zh: "城鎮" },
+        { id: 4, en: "polite", ph: "[pə`laɪt]", zh: "有禮貌的" },
+        { id: 5, en: "seat", ph: "[sit]", zh: "座位" },
+        { id: 6, en: "beside", ph: "[bɪ`saɪd]", zh: "在...旁邊" },
+        { id: 7, en: "except", ph: "[ɪk`sɛpt]", zh: "除了" },
+        { id: 8, en: "blank", ph: "[blæŋk]", zh: "空白(的)" },
+        { id: 9, en: "present", ph: "[`prɛzṇt]", zh: "禮物" },
+        { id: 10, en: "invite", ph: "[ɪn`vaɪt]", zh: "邀請" },
+        { id: 11, en: "perhaps", ph: "[pə`hæps]", zh: "或許" },
+        { id: 12, en: "kiss", ph: "[kɪs]", zh: "吻" },
+        { id: 13, en: "side", ph: "[saɪd]", zh: "側面；邊" },
+        { id: 14, en: "sidewalk", ph: "[`saɪd,wɔk]", zh: "人行道" },
+        { id: 15, en: "blind", ph: "[blaɪnd]", zh: "盲的" },
+        { id: 16, en: "April Fools' Day", ph: "[`eprəl `fulz ,de]", zh: "愚人節" },
+        { id: 17, en: "tape", ph: "[tep]", zh: "用膠帶黏貼；膠帶" },
+        { id: 18, en: "paper", ph: "[`pepɚ]", zh: "紙" },
+        { id: 19, en: "joke", ph: "[dʒok]", zh: "玩笑；笑話" },
+        { id: 20, en: "visitor", ph: "[`vɪzɪtɚ]", zh: "遊客；參觀者" },
+        { id: 21, en: "somewhere", ph: "[`sʌm,(h)wɛr]", zh: "在某處" },
+        { id: 22, en: "mud", ph: "[mʌd]", zh: "泥土" },
+        { id: 23, en: "ahead", ph: "[ə`hɛd]", zh: "在前方" },
+        { id: 24, en: "heat", ph: "[hit]", zh: "高溫；加熱" },
+        { id: 25, en: "rise", ph: "[raɪz]", zh: "升起；起身" },
+        { id: 26, en: "rich", ph: "[rɪtʃ]", zh: "富有的" },
+        { id: 27, en: "lazy", ph: "[`lezɪ]", zh: "懶惰的；慵懶的" },
+        { id: 28, en: "have bigger fish to fry", ph: "[hæv `bɪgɚ ,fɪʃ tə `fraɪ]", zh: "有更重要的事要做" },
+        { id: 29, en: "smoke", ph: "[smok]", zh: "煙霧；抽菸" },
+        { id: 30, en: "cover", ph: "[`kʌvɚ]", zh: "覆蓋；遮蓋(物)" },
+        { id: 31, en: "used to", ph: "[`just tə]", zh: "過去時常..." },
+        { id: 32, en: "appear", ph: "[ə`pɪr]", zh: "似乎" },
+        { id: 33, en: "serious", ph: "[`sɪrɪəs]", zh: "認真的" },
+        { id: 34, en: "lie", ph: "[laɪ]", zh: "躺；臥 (現在分詞為 lying)" },
+        { id: 35, en: "draw", ph: "[drɔ]", zh: "提取 (水、錢)" },
+        { id: 36, en: "spell", ph: "[spɛl]", zh: "咒語" },
+        { id: 37, en: "worthless", ph: "[`wɜθlɪs]", zh: "無價值的" },
+        { id: 38, en: "chat", ph: "[tʃæt]", zh: "聊天" },
+        { id: 39, en: "resist", ph: "[rɪ`zɪst]", zh: "抵抗" },
+        { id: 40, en: "complain", ph: "[kəm`plen]", zh: "抱怨" },
+        { id: 41, en: "fairy", ph: "[`fɛrɪ]", zh: "精靈；仙子" },
+        { id: 42, en: "jewel", ph: "[`dʒuəl]", zh: "寶石" }
+    ];
+
+    let currentMode = ''; // 'en-zh' or 'zh-en'
+    let questionList = [];
+    let currentIndex = 0;
+    let score = 0;
+    let userAnswers = [];
+
+    // 開始測驗
+    function startQuiz(mode) {
+        currentMode = mode;
+        score = 0;
+        currentIndex = 0;
+        userAnswers = [];
+        
+        // 隨機打亂題目順序
+        questionList = [...vocabData].sort(() => 0.5 - Math.random());
+        
+        // 顯示測驗畫面
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        
+        renderQuestion();
+    }
+
+    // 產生題目介面
+    function renderQuestion() {
+        const currentQ = questionList[currentIndex];
+        const qTextEl = document.getElementById('question-text');
+        const optionsEl = document.getElementById('options-container');
+        const countEl = document.getElementById('current-q');
+        const totalEl = document.getElementById('total-q');
+
+        countEl.textContent = currentIndex + 1;
+        totalEl.textContent = questionList.length;
+
+        // 根據模式設定題目文字
+        if (currentMode === 'en-zh') {
+            qTextEl.innerHTML = `${currentQ.en} <span class="phonetic">${currentQ.ph}</span>`;
+        } else {
+            qTextEl.textContent = currentQ.zh;
+        }
+
+        // 產生選項 (1個正確 + 3個錯誤)
+        let options = [currentQ];
+        // 隨機選3個錯誤答案
+        while (options.length < 4) {
+            const randomItem = vocabData[Math.floor(Math.random() * vocabData.length)];
+            if (!options.includes(randomItem)) {
+                options.push(randomItem);
+            }
+        }
+        // 打亂選項順序
+        options.sort(() => 0.5 - Math.random());
+
+        // 渲染按鈕
+        optionsEl.innerHTML = '';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-option';
+            // 根據模式顯示選項內容
+            if (currentMode === 'en-zh') {
+                btn.textContent = opt.zh;
+            } else {
+                btn.textContent = opt.en;
+            }
+            btn.onclick = () => checkAnswer(opt.id, currentQ.id);
+            optionsEl.appendChild(btn);
+        });
+    }
+
+    // 檢查答案
+    function checkAnswer(selectedId, correctId) {
+        const isCorrect = selectedId === correctId;
+        if (isCorrect) score++;
+        
+        userAnswers.push({
+            question: questionList[currentIndex],
+            isCorrect: isCorrect
+        });
+
+        currentIndex++;
+        if (currentIndex < questionList.length) {
+            renderQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    // 結束測驗，計算分數
+    function finishQuiz() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+
+        const percentage = Math.round((score / questionList.length) * 100);
+        const scoreText = document.getElementById('score-text');
+        const passFailMsg = document.getElementById('pass-fail-msg');
+
+        scoreText.textContent = `得分：${percentage}% (${score} / ${questionList.length})`;
+
+        if (percentage >= 60) {
+            passFailMsg.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
+        } else {
+            passFailMsg.innerHTML = '<span class="result-fail">再接再厲！ (Fail)</span>';
+        }
+
+        // 顯示答錯的題目回顧
+        const reviewList = document.getElementById('review-list');
+        reviewList.innerHTML = '<h3>答錯題目檢討：</h3>';
+        
+        const wrongAnswers = userAnswers.filter(a => !a.isCorrect);
+        if (wrongAnswers.length === 0) {
+            reviewList.innerHTML += '<p style="color:green">完美！全對！</p>';
+        } else {
+            wrongAnswers.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'review-item wrong';
+                div.innerHTML = `
+                    <strong>${item.question.en}</strong> 
+                    <br> ${item.question.zh}
+                `;
+                reviewList.appendChild(div);
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
