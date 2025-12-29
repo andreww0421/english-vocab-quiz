@@ -602,6 +602,9 @@
     }
 
     function finishQuiz() {
+        // 重點修正：在進入結果畫面時，強制清除所有的回饋特效
+        resetFeedback();
+
         document.getElementById('quiz-screen').classList.add('hidden');
         document.getElementById('timer-container').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
