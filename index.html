@@ -10,6 +10,7 @@
             --success: #2ecc71;
             --fail: #e74c3c;
             --warning: #f1c40f;
+            --combo: #ff9f43;
             --bg: #f5f7fa;
         }
 
@@ -33,11 +34,83 @@
             max-width: 600px;
             text-align: center;
             position: relative;
-            overflow: hidden; /* For timer bar */
+            overflow: hidden;
         }
 
         h1 { color: #333; margin-bottom: 1rem; }
-        
+
+        /* 進度條 (總進度) - 藍色 */
+        .progress-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background-color: #eee;
+            z-index: 10;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 倒數計時條 (單題限時) - 紅色 */
+        .timer-container {
+            position: absolute;
+            top: 6px; /* 在進度條下方 */
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: transparent;
+            z-index: 9;
+        }
+        .timer-bar {
+            height: 100%;
+            background-color: var(--fail);
+            width: 100%;
+            transition: width linear;
+            opacity: 0.7;
+        }
+
+        /* 連擊特效 */
+        .combo-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-weight: 900;
+            font-style: italic;
+            color: var(--combo);
+            text-shadow: 2px 2px 0px #333;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+        }
+        .combo-active {
+            opacity: 1;
+            transform: scale(1.2) rotate(-10deg);
+        }
+        .combo-count { font-size: 2.5rem; }
+        .combo-label { font-size: 1rem; display: block; }
+
+        /* 答題回饋遮罩 (打勾/打叉) */
+        .feedback-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            font-weight: bold;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .feedback-show { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+
         /* 按鈕樣式 */
         .btn {
             background-color: var(--primary);
@@ -58,6 +131,7 @@
         .btn-purple { background-color: #9b59b6; }
         .btn-purple:hover { background-color: #8e44ad; }
 
+        /* 選項按鈕與回饋狀態 */
         .btn-option {
             display: block;
             width: 100%;
@@ -66,14 +140,29 @@
             background-color: #fff;
             color: #333;
             border: 2px solid #e0e0e0;
+            position: relative; /* For positioning feedback */
         }
-        .btn-option:hover { background-color: #f0f8ff; border-color: var(--primary); }
+        .btn-option:hover:not(:disabled) { background-color: #f0f8ff; border-color: var(--primary); }
+
+        /* 答對樣式 */
+        .btn-correct {
+            background-color: #d4edda !important;
+            border-color: #28a745 !important;
+            color: #155724 !important;
+        }
+        /* 答錯樣式 */
+        .btn-wrong {
+            background-color: #f8d7da !important;
+            border-color: #dc3545 !important;
+            color: #721c24 !important;
+        }
 
         /* 題目區域 */
         .question-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-top: 15px; /* 避開進度條 */
             margin-bottom: 10px;
             font-size: 0.9rem;
             color: #666;
@@ -110,22 +199,6 @@
         }
         .audio-btn:hover { color: #357abd; transform: scale(1.1); }
 
-        /* 計時條 */
-        .timer-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 6px;
-            background-color: #eee;
-        }
-        .timer-bar {
-            height: 100%;
-            background-color: var(--fail);
-            width: 100%;
-            transition: width linear;
-        }
-
         /* 拼字輸入框 */
         .input-group {
             margin: 20px 0;
@@ -137,8 +210,11 @@
             border: 2px solid #ddd;
             border-radius: 8px;
             outline: none;
+            transition: border-color 0.3s;
         }
         .spelling-input:focus { border-color: var(--primary); }
+        .spelling-input.correct { border-color: var(--success); background-color: #d4edda; }
+        .spelling-input.wrong { border-color: var(--fail); background-color: #f8d7da; }
 
         /* 結果與狀態 */
         .hidden { display: none; }
@@ -160,9 +236,20 @@
 <body>
 
 <div class="container" id="app">
+    <div class="progress-container">
+        <div class="progress-bar" id="total-progress"></div>
+    </div>
+
     <div class="timer-container hidden" id="timer-container">
         <div class="timer-bar" id="timer-bar"></div>
     </div>
+
+    <div class="combo-box" id="combo-box">
+        <span class="combo-label">COMBO</span>
+        <span class="combo-count" id="combo-count">0</span>
+    </div>
+
+    <div class="feedback-overlay" id="feedback-icon"></div>
 
     <div id="start-screen">
         <h1>第五冊U6單字測驗</h1>
@@ -192,6 +279,7 @@
     <div id="result-screen" class="hidden">
         <h1>測驗結果</h1>
         <p id="score-text"></p>
+        <p id="max-combo-text" style="color: var(--combo); font-weight: bold;"></p>
         <div id="pass-fail-msg"></div>
         <button class="btn" onclick="location.reload()">重新測驗</button>
         
@@ -252,13 +340,16 @@
     let currentIndex = 0;
     let score = 0;
     let userAnswers = [];
-    // 新增一個變數來記錄當前題目的模式 ('en-zh' 或 'zh-en')
     let currentQuestionMode = ''; 
+    // 連擊變數
+    let combo = 0;
+    let maxCombo = 0;
     
     // 計時器變數
     let timerInterval;
     let timeLimit = 10; // 秒
     let timeRemaining = 10;
+    let isProcessing = false; // 防止重複點擊
 
     // 語音朗讀功能
     function speakText(text) {
@@ -276,6 +367,9 @@
         score = 0;
         currentIndex = 0;
         userAnswers = [];
+        combo = 0;
+        maxCombo = 0;
+        isProcessing = false;
         
         // 設定不同模式的時間限制
         timeLimit = (mode === 'spelling') ? 15 : 10;
@@ -286,19 +380,28 @@
         document.getElementById('quiz-screen').classList.remove('hidden');
         document.getElementById('timer-container').classList.remove('hidden');
         
+        updateProgress();
         renderQuestion();
     }
 
+    function updateProgress() {
+        // 更新上方藍色總進度條
+        const percentage = ((currentIndex) / questionList.length) * 100;
+        document.getElementById('total-progress').style.width = percentage + '%';
+        
+        document.getElementById('current-q').textContent = currentIndex + 1;
+        document.getElementById('total-q').textContent = questionList.length;
+    }
+
     function renderQuestion() {
+        isProcessing = false;
+        updateProgress();
+        resetFeedback();
+
         const currentQ = questionList[currentIndex];
         const qTextEl = document.getElementById('question-text');
         const optionsEl = document.getElementById('options-container');
         const spellingEl = document.getElementById('spelling-container');
-        const countEl = document.getElementById('current-q');
-        const totalEl = document.getElementById('total-q');
-
-        countEl.textContent = currentIndex + 1;
-        totalEl.textContent = questionList.length;
 
         // 重置計時器
         startTimer();
@@ -312,14 +415,16 @@
             // 清空並聚焦輸入框
             const input = document.getElementById('spelling-input');
             input.value = '';
+            input.className = 'spelling-input'; // 重置樣式
+            input.disabled = false;
             input.focus();
             
             // 綁定 Enter 鍵
-            input.onkeydown = (e) => { if(e.key === 'Enter') submitSpelling(); };
+            input.onkeydown = (e) => { 
+                if(e.key === 'Enter' && !isProcessing) submitSpelling(); 
+            };
 
         } else {
-            // 混合模式下，隨機決定這一題是「英翻中」還是「中翻英」
-            // 如果 currentMode 是 mixed，則隨機；否則依據 mode 決定（雖然目前只有 mixed 會進來）
             currentQuestionMode = Math.random() < 0.5 ? 'en-zh' : 'zh-en';
             
             spellingEl.classList.add('hidden');
@@ -354,7 +459,9 @@
                 btn.className = 'btn btn-option';
                 // 根據當前題目的模式決定選項內容
                 btn.textContent = (currentQuestionMode === 'en-zh') ? opt.zh : opt.en;
-                btn.onclick = () => checkAnswer(opt.id, currentQ.id);
+                btn.dataset.id = opt.id; // 儲存 ID 供檢查用
+                // 點擊後檢查答案
+                btn.onclick = () => { if(!isProcessing) checkAnswer(btn, opt.id, currentQ.id); };
                 optionsEl.appendChild(btn);
             });
         }
@@ -383,38 +490,98 @@
     }
 
     function handleTimeOut() {
-        // 時間到算錯
+        if(isProcessing) return;
+        showFeedback(false);
         recordAnswer(false);
-        nextQuestion();
+        setTimeout(nextQuestion, 1500); // 時間到也暫停一下再下一題
     }
 
-    function checkAnswer(selectedId, correctId) {
+    function checkAnswer(btnElement, selectedId, correctId) {
         clearInterval(timerInterval);
+        isProcessing = true;
         const isCorrect = selectedId === correctId;
         
-        // 如果是中翻英，答對後朗讀英文增強記憶
-        // 使用 currentQuestionMode 來判斷
-        if (isCorrect && currentQuestionMode === 'zh-en') {
-            speakText(questionList[currentIndex].en);
+        // 鎖定所有按鈕
+        const allBtns = document.querySelectorAll('.btn-option');
+        allBtns.forEach(b => b.disabled = true);
+
+        // 視覺回饋
+        if (isCorrect) {
+            btnElement.classList.add('btn-correct');
+            // 如果是中翻英，答對後朗讀英文
+            if (currentQuestionMode === 'zh-en') {
+                speakText(questionList[currentIndex].en);
+            }
+        } else {
+            btnElement.classList.add('btn-wrong');
+            // 標示正確答案
+            allBtns.forEach(b => {
+                if(parseInt(b.dataset.id) === correctId) b.classList.add('btn-correct');
+            });
         }
 
+        showFeedback(isCorrect);
         recordAnswer(isCorrect);
-        nextQuestion();
+        
+        setTimeout(nextQuestion, 1200); // 延遲 1.2 秒
     }
 
     function submitSpelling() {
+        if(isProcessing) return;
         clearInterval(timerInterval);
-        const inputVal = document.getElementById('spelling-input').value.trim();
+        isProcessing = true;
+
+        const input = document.getElementById('spelling-input');
+        const inputVal = input.value.trim();
         const correctVal = questionList[currentIndex].en;
         
         // 比對時忽略大小寫
         const isCorrect = inputVal.toLowerCase() === correctVal.toLowerCase();
 
-        // 答對朗讀
-        if (isCorrect) speakText(correctVal);
+        input.disabled = true;
+        if(isCorrect) {
+            input.classList.add('correct');
+            speakText(correctVal);
+        } else {
+            input.classList.add('wrong');
+            input.value += ` (正確: ${correctVal})`; // 顯示正確答案
+        }
 
+        showFeedback(isCorrect);
         recordAnswer(isCorrect);
-        nextQuestion();
+
+        setTimeout(nextQuestion, 1500);
+    }
+
+    function showFeedback(isCorrect) {
+        const feedbackIcon = document.getElementById('feedback-icon');
+        const comboBox = document.getElementById('combo-box');
+        
+        // 顯示圖示
+        feedbackIcon.textContent = isCorrect ? '✅' : '❌';
+        feedbackIcon.style.color = isCorrect ? 'var(--success)' : 'var(--fail)';
+        feedbackIcon.classList.add('feedback-show');
+
+        // Combo 邏輯
+        if (isCorrect) {
+            combo++;
+            if(combo > maxCombo) maxCombo = combo;
+            
+            if (combo >= 2) {
+                document.getElementById('combo-count').textContent = combo;
+                comboBox.classList.add('combo-active');
+            }
+        } else {
+            combo = 0;
+            comboBox.classList.remove('combo-active');
+        }
+    }
+
+    function resetFeedback() {
+        document.getElementById('feedback-icon').classList.remove('feedback-show');
+        if(combo < 2) {
+            document.getElementById('combo-box').classList.remove('combo-active');
+        }
     }
 
     function recordAnswer(isCorrect) {
@@ -438,9 +605,11 @@
         document.getElementById('quiz-screen').classList.add('hidden');
         document.getElementById('timer-container').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
+        document.getElementById('combo-box').classList.remove('combo-active');
 
         const percentage = Math.round((score / questionList.length) * 100);
         document.getElementById('score-text').textContent = `得分：${percentage}% (${score} / ${questionList.length})`;
+        document.getElementById('max-combo-text').textContent = `🔥 最高連擊 (Max Combo): ${maxCombo}`;
 
         const msgDiv = document.getElementById('pass-fail-msg');
         if (percentage >= 60) {
