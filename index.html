@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>單字測驗 (Vocabulary Quiz)</title>
+    <title>單字測驗 Pro (混合模式)</title>
     <style>
         :root {
             --primary: #4a90e2;
             --success: #2ecc71;
             --fail: #e74c3c;
+            --warning: #f1c40f;
             --bg: #f5f7fa;
         }
 
@@ -31,24 +32,31 @@
             width: 100%;
             max-width: 600px;
             text-align: center;
+            position: relative;
+            overflow: hidden; /* For timer bar */
         }
 
-        h1 { color: #333; margin-bottom: 1.5rem; }
+        h1 { color: #333; margin-bottom: 1rem; }
         
+        /* 按鈕樣式 */
         .btn {
             background-color: var(--primary);
             color: white;
             border: none;
             padding: 12px 24px;
-            margin: 5px;
+            margin: 8px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 1rem;
             transition: transform 0.1s, background 0.2s;
+            display: inline-block;
         }
-
         .btn:hover { background-color: #357abd; transform: translateY(-2px); }
         .btn:active { transform: translateY(0); }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .btn-purple { background-color: #9b59b6; }
+        .btn-purple:hover { background-color: #8e44ad; }
 
         .btn-option {
             display: block;
@@ -59,17 +67,27 @@
             color: #333;
             border: 2px solid #e0e0e0;
         }
-
         .btn-option:hover { background-color: #f0f8ff; border-color: var(--primary); }
 
+        /* 題目區域 */
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
         .question-box {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
-            margin: 20px 0;
+            margin: 10px 0 25px 0;
             color: #2c3e50;
             padding: 20px;
             background: #ecf0f1;
             border-radius: 10px;
+            position: relative;
         }
 
         .phonetic {
@@ -80,18 +98,53 @@
             font-weight: normal;
         }
 
-        .hidden { display: none; }
+        /* 語音按鈕 */
+        .audio-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .audio-btn:hover { color: #357abd; transform: scale(1.1); }
 
+        /* 計時條 */
+        .timer-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background-color: #eee;
+        }
+        .timer-bar {
+            height: 100%;
+            background-color: var(--fail);
+            width: 100%;
+            transition: width linear;
+        }
+
+        /* 拼字輸入框 */
+        .input-group {
+            margin: 20px 0;
+        }
+        .spelling-input {
+            width: 70%;
+            padding: 12px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+        .spelling-input:focus { border-color: var(--primary); }
+
+        /* 結果與狀態 */
+        .hidden { display: none; }
         .result-pass { color: var(--success); font-weight: bold; font-size: 1.5rem; }
         .result-fail { color: var(--fail); font-weight: bold; font-size: 1.5rem; }
         
-        .progress {
-            margin-bottom: 15px;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        /* Result Table */
         .result-details {
             margin-top: 20px;
             text-align: left;
@@ -99,29 +152,41 @@
             overflow-y: auto;
             border-top: 1px solid #eee;
         }
-        .review-item {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
+        .review-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .review-item.wrong { color: var(--fail); }
+        .review-audio { cursor: pointer; color: var(--primary); font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
 <div class="container" id="app">
+    <div class="timer-container hidden" id="timer-container">
+        <div class="timer-bar" id="timer-bar"></div>
+    </div>
+
     <div id="start-screen">
-        <h1>單字測驗挑戰</h1>
+        <h1>單字測驗 Pro</h1>
         <p>資料庫共 42 個單字<br>通過標準：答對率 60%</p>
-        <button class="btn" onclick="startQuiz('en-zh')">看英文 -> 選中文</button>
-        <button class="btn" onclick="startQuiz('zh-en')">看中文 -> 選英文</button>
+        <button class="btn" onclick="startQuiz('mixed')">🔊 開始混合測驗 (英↔中)</button>
+        <br>
+        <button class="btn btn-purple" onclick="startQuiz('spelling')">⌨️ 拼字挑戰 (高難度)</button>
     </div>
 
     <div id="quiz-screen" class="hidden">
-        <div class="progress">題數: <span id="current-q">1</span> / <span id="total-q">10</span></div>
+        <div class="question-header">
+            <span>題數: <span id="current-q">1</span> / <span id="total-q">10</span></span>
+            <span id="timer-text" style="color:var(--fail); font-weight:bold;">10s</span>
+        </div>
+        
         <div class="question-box" id="question-text">
             </div>
-        <div id="options-container">
-            </div>
+
+        <div id="options-container"></div>
+
+        <div id="spelling-container" class="input-group hidden">
+            <input type="text" id="spelling-input" class="spelling-input" placeholder="輸入英文單字..." autocomplete="off">
+            <button class="btn" onclick="submitSpelling()">送出</button>
+        </div>
     </div>
 
     <div id="result-screen" class="hidden">
@@ -136,7 +201,7 @@
 </div>
 
 <script>
-    // 單字資料庫 (根據圖片內容建立)
+    // 單字資料庫
     const vocabData = [
         { id: 1, en: "apartment", ph: "[ə`partmənt]", zh: "公寓" },
         { id: 2, en: "glad", ph: "[glæd]", zh: "高興的" },
@@ -182,85 +247,185 @@
         { id: 42, en: "jewel", ph: "[`dʒuəl]", zh: "寶石" }
     ];
 
-    let currentMode = ''; // 'en-zh' or 'zh-en'
+    let currentMode = ''; 
     let questionList = [];
     let currentIndex = 0;
     let score = 0;
     let userAnswers = [];
+    // 新增一個變數來記錄當前題目的模式 ('en-zh' 或 'zh-en')
+    let currentQuestionMode = ''; 
+    
+    // 計時器變數
+    let timerInterval;
+    let timeLimit = 10; // 秒
+    let timeRemaining = 10;
 
-    // 開始測驗
+    // 語音朗讀功能
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // 停止上一個發音
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US'; // 設定為美式發音
+            utterance.rate = 0.9; // 稍微慢一點點
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
     function startQuiz(mode) {
         currentMode = mode;
         score = 0;
         currentIndex = 0;
         userAnswers = [];
         
-        // 隨機打亂題目順序
+        // 設定不同模式的時間限制
+        timeLimit = (mode === 'spelling') ? 15 : 10;
+
         questionList = [...vocabData].sort(() => 0.5 - Math.random());
         
-        // 顯示測驗畫面
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('quiz-screen').classList.remove('hidden');
+        document.getElementById('timer-container').classList.remove('hidden');
         
         renderQuestion();
     }
 
-    // 產生題目介面
     function renderQuestion() {
         const currentQ = questionList[currentIndex];
         const qTextEl = document.getElementById('question-text');
         const optionsEl = document.getElementById('options-container');
+        const spellingEl = document.getElementById('spelling-container');
         const countEl = document.getElementById('current-q');
         const totalEl = document.getElementById('total-q');
 
         countEl.textContent = currentIndex + 1;
         totalEl.textContent = questionList.length;
 
-        // 根據模式設定題目文字
-        if (currentMode === 'en-zh') {
-            qTextEl.innerHTML = `${currentQ.en} <span class="phonetic">${currentQ.ph}</span>`;
-        } else {
+        // 重置計時器
+        startTimer();
+
+        // 介面切換
+        if (currentMode === 'spelling') {
+            optionsEl.classList.add('hidden');
+            spellingEl.classList.remove('hidden');
             qTextEl.textContent = currentQ.zh;
-        }
+            
+            // 清空並聚焦輸入框
+            const input = document.getElementById('spelling-input');
+            input.value = '';
+            input.focus();
+            
+            // 綁定 Enter 鍵
+            input.onkeydown = (e) => { if(e.key === 'Enter') submitSpelling(); };
 
-        // 產生選項 (1個正確 + 3個錯誤)
-        let options = [currentQ];
-        // 隨機選3個錯誤答案
-        while (options.length < 4) {
-            const randomItem = vocabData[Math.floor(Math.random() * vocabData.length)];
-            if (!options.includes(randomItem)) {
-                options.push(randomItem);
-            }
-        }
-        // 打亂選項順序
-        options.sort(() => 0.5 - Math.random());
-
-        // 渲染按鈕
-        optionsEl.innerHTML = '';
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-option';
-            // 根據模式顯示選項內容
-            if (currentMode === 'en-zh') {
-                btn.textContent = opt.zh;
+        } else {
+            // 混合模式下，隨機決定這一題是「英翻中」還是「中翻英」
+            // 如果 currentMode 是 mixed，則隨機；否則依據 mode 決定（雖然目前只有 mixed 會進來）
+            currentQuestionMode = Math.random() < 0.5 ? 'en-zh' : 'zh-en';
+            
+            spellingEl.classList.add('hidden');
+            optionsEl.classList.remove('hidden');
+            
+            // 題目顯示
+            if (currentQuestionMode === 'en-zh') {
+                qTextEl.innerHTML = `
+                    ${currentQ.en} 
+                    <button class="audio-btn" onclick="speakText('${currentQ.en.replace(/'/g, "\\'")}')">🔊</button>
+                    <br><span class="phonetic">${currentQ.ph}</span>
+                `;
+                // 自動朗讀
+                speakText(currentQ.en);
             } else {
-                btn.textContent = opt.en;
+                qTextEl.textContent = currentQ.zh;
             }
-            btn.onclick = () => checkAnswer(opt.id, currentQ.id);
-            optionsEl.appendChild(btn);
-        });
+
+            // 選項生成
+            let options = [currentQ];
+            while (options.length < 4) {
+                const randomItem = vocabData[Math.floor(Math.random() * vocabData.length)];
+                if (!options.includes(randomItem)) {
+                    options.push(randomItem);
+                }
+            }
+            options.sort(() => 0.5 - Math.random());
+
+            optionsEl.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-option';
+                // 根據當前題目的模式決定選項內容
+                btn.textContent = (currentQuestionMode === 'en-zh') ? opt.zh : opt.en;
+                btn.onclick = () => checkAnswer(opt.id, currentQ.id);
+                optionsEl.appendChild(btn);
+            });
+        }
     }
 
-    // 檢查答案
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeRemaining = timeLimit;
+        updateTimerVisuals();
+
+        timerInterval = setInterval(() => {
+            timeRemaining -= 0.1;
+            updateTimerVisuals();
+            
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                handleTimeOut();
+            }
+        }, 100);
+    }
+
+    function updateTimerVisuals() {
+        const percentage = (timeRemaining / timeLimit) * 100;
+        document.getElementById('timer-bar').style.width = percentage + '%';
+        document.getElementById('timer-text').textContent = Math.ceil(timeRemaining) + 's';
+    }
+
+    function handleTimeOut() {
+        // 時間到算錯
+        recordAnswer(false);
+        nextQuestion();
+    }
+
     function checkAnswer(selectedId, correctId) {
+        clearInterval(timerInterval);
         const isCorrect = selectedId === correctId;
-        if (isCorrect) score++;
         
+        // 如果是中翻英，答對後朗讀英文增強記憶
+        // 使用 currentQuestionMode 來判斷
+        if (isCorrect && currentQuestionMode === 'zh-en') {
+            speakText(questionList[currentIndex].en);
+        }
+
+        recordAnswer(isCorrect);
+        nextQuestion();
+    }
+
+    function submitSpelling() {
+        clearInterval(timerInterval);
+        const inputVal = document.getElementById('spelling-input').value.trim();
+        const correctVal = questionList[currentIndex].en;
+        
+        // 比對時忽略大小寫
+        const isCorrect = inputVal.toLowerCase() === correctVal.toLowerCase();
+
+        // 答對朗讀
+        if (isCorrect) speakText(correctVal);
+
+        recordAnswer(isCorrect);
+        nextQuestion();
+    }
+
+    function recordAnswer(isCorrect) {
+        if (isCorrect) score++;
         userAnswers.push({
             question: questionList[currentIndex],
             isCorrect: isCorrect
         });
+    }
 
+    function nextQuestion() {
         currentIndex++;
         if (currentIndex < questionList.length) {
             renderQuestion();
@@ -269,26 +434,23 @@
         }
     }
 
-    // 結束測驗，計算分數
     function finishQuiz() {
         document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('timer-container').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
 
         const percentage = Math.round((score / questionList.length) * 100);
-        const scoreText = document.getElementById('score-text');
-        const passFailMsg = document.getElementById('pass-fail-msg');
+        document.getElementById('score-text').textContent = `得分：${percentage}% (${score} / ${questionList.length})`;
 
-        scoreText.textContent = `得分：${percentage}% (${score} / ${questionList.length})`;
-
+        const msgDiv = document.getElementById('pass-fail-msg');
         if (percentage >= 60) {
-            passFailMsg.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
+            msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
         } else {
-            passFailMsg.innerHTML = '<span class="result-fail">再接再厲！ (Fail)</span>';
+            msgDiv.innerHTML = '<span class="result-fail">再接再厲！ (Fail)</span>';
         }
 
-        // 顯示答錯的題目回顧
         const reviewList = document.getElementById('review-list');
-        reviewList.innerHTML = '<h3>答錯題目檢討：</h3>';
+        reviewList.innerHTML = '<h3>答錯題目檢討 (點擊喇叭發音)：</h3>';
         
         const wrongAnswers = userAnswers.filter(a => !a.isCorrect);
         if (wrongAnswers.length === 0) {
@@ -298,8 +460,11 @@
                 const div = document.createElement('div');
                 div.className = 'review-item wrong';
                 div.innerHTML = `
-                    <strong>${item.question.en}</strong> 
-                    <br> ${item.question.zh}
+                    <div>
+                        <strong>${item.question.en}</strong> 
+                        <br> ${item.question.zh}
+                    </div>
+                    <div class="review-audio" onclick="speakText('${item.question.en.replace(/'/g, "\\'")}')">🔊</div>
                 `;
                 reviewList.appendChild(div);
             });
