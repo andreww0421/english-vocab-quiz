@@ -1,8 +1,8 @@
 // 全域變數
-let vocabData = []; // 資料先留空，等 Google Sheet 載入
+let vocabData = []; 
 let currentMode = ''; 
-let selectedUnits = []; // 等資料載入後再初始化
-let ALL_UNITS = [];     // 自動從資料中抓取所有單元
+let selectedUnits = [];
+let ALL_UNITS = [];
 
 let questionList = [];
 let currentIndex = 0;
@@ -16,79 +16,132 @@ let timeLimit = 10;
 let timeRemaining = 10;
 let isProcessing = false;
 
-// ==========================================
-//  你的 Google Sheet CSV 連結
-// ==========================================
+// 你的 Google Sheet CSV 連結
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTxd32azbren8Y1VTFYqd_NhzKI7hyVEV2RLYYu8XHGsuipC-SbDgJDGU-6ayIRWZpEmIobLjuKCec/pub?output=csv'; 
 
-// 初始化：程式入口
 window.onload = function() {
+    // 檢查 PapaParse 是否載入
+    if (typeof Papa === 'undefined') {
+        alert("嚴重錯誤：網頁缺少 PapaParse 元件。\n請檢查 index.html 是否有加入 <script src='...papaparse...'> 的程式碼。");
+        document.getElementById('loading-text').textContent = "程式庫載入失敗";
+        return;
+    }
+
+    // 1. 先嘗試讀取快取 (讓使用者不用等)
+    const cachedData = localStorage.getItem('cachedVocabData');
+    if (cachedData) {
+        console.log("使用本機快取資料");
+        try {
+            const parsedCache = JSON.parse(cachedData);
+            if (parsedCache && parsedCache.length > 0) {
+                processData(parsedCache);
+                document.getElementById('update-status').textContent = "已載入快取資料，正在背景更新...";
+            }
+        } catch (e) {
+            console.error("快取資料損毀", e);
+        }
+    }
+
+    // 2. 背景讀取最新資料 (Google Sheet)
     loadGoogleSheetData();
 };
 
-// 讀取 Google Sheet 資料
 function loadGoogleSheetData() {
     Papa.parse(SHEET_URL, {
         download: true,
-        header: true, // 把第一列 (id, unit, en...) 當作標題
+        header: true,
         complete: function(results) {
-            // 1. 資料轉換
-            vocabData = results.data
-                .filter(item => item.en && item.zh) // 過濾掉空行
+            // 資料轉換與清洗
+            const newData = results.data
+                .filter(item => item.en && item.zh) // 去除空行
                 .map(item => ({
                     id: parseInt(item.id),
-                    unit: item.unit,
-                    en: item.en,
-                    ph: item.ph,
-                    zh: item.zh
+                    unit: item.unit ? item.unit.trim() : "Unknown",
+                    en: item.en.trim(),
+                    ph: item.ph ? item.ph.trim() : "",
+                    zh: item.zh.trim()
                 }));
 
-            console.log("成功載入單字數：", vocabData.length);
+            if (newData.length === 0) {
+                console.warn("讀取到的資料為空，可能是權限問題或連結錯誤");
+                if (vocabData.length === 0) {
+                    document.getElementById('loading-text').textContent = "讀取失敗：資料庫為空";
+                    alert("讀取失敗！請確認 Google 試算表已「發布到網路」。");
+                }
+                return;
+            }
 
-            // 2. 自動抓取所有單元 (例如 U1, U2... B6U1)
-            // 使用 Set 來過濾重複的單元名稱
-            const unitSet = new Set(vocabData.map(item => item.unit));
-            
-            // 自訂排序邏輯：讓 B6U1 排在最後面，U1~U6 排前面
-            ALL_UNITS = Array.from(unitSet).sort((a, b) => {
-                // 如果是 B 開頭的 (如 B6U1)，排在 U 開頭的後面
-                if (a.startsWith('B') && !b.startsWith('B')) return 1;
-                if (!a.startsWith('B') && b.startsWith('B')) return -1;
-                return a.localeCompare(b); // 其他照字母順序
-            });
-            
-            // 預設全選
-            selectedUnits = [...ALL_UNITS];
+            console.log("雲端資料讀取成功，筆數：", newData.length);
 
-            // 3. 動態產生選單按鈕
-            generateRangeButtons();
+            // 更新快取
+            localStorage.setItem('cachedVocabData', JSON.stringify(newData));
 
-            // 4. 恢復原本的初始化動作
-            updateCheckmarks();
-            updateRangeUI();
+            // 如果原本沒資料，或資料有變動，重新渲染
+            if (vocabData.length === 0 || JSON.stringify(vocabData) !== JSON.stringify(newData)) {
+                processData(newData);
+                document.getElementById('update-status').textContent = "資料庫已更新至最新版本！";
+                // 3秒後隱藏提示
+                setTimeout(() => {
+                    const statusEl = document.getElementById('update-status');
+                    if(statusEl) statusEl.textContent = "";
+                }, 3000);
+            } else {
+                document.getElementById('update-status').textContent = "目前已是最新版本";
+            }
         },
         error: function(err) {
-            alert("讀取單字表失敗，請檢查網路或 Google Sheet 連結。");
-            console.error(err);
+            console.error("下載失敗", err);
+            if (vocabData.length === 0) {
+                document.getElementById('loading-text').textContent = "網路連線失敗";
+                alert("無法連線到 Google 試算表，請檢查網路。");
+            }
         }
     });
 }
 
-// 動態產生範圍選擇按鈕
+// 處理資料並產生介面
+function processData(data) {
+    vocabData = data;
+    
+    // 自動抓取所有單元並排序
+    const unitSet = new Set(vocabData.map(item => item.unit));
+    
+    ALL_UNITS = Array.from(unitSet).sort((a, b) => {
+        // 排序邏輯：B6U1 排在 U1~U6 後面
+        if (a.startsWith('B') && !b.startsWith('B')) return 1;
+        if (!a.startsWith('B') && b.startsWith('B')) return -1;
+        return a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'});
+    });
+
+    // 如果是第一次載入，預設全選
+    if (selectedUnits.length === 0) {
+        selectedUnits = [...ALL_UNITS];
+    } else {
+        // 過濾掉已經不存在的單元
+        selectedUnits = selectedUnits.filter(u => ALL_UNITS.includes(u));
+    }
+
+    generateRangeButtons();
+    updateCheckmarks();
+    updateRangeUI();
+}
+
 function generateRangeButtons() {
-    const container = document.querySelector('.range-options');
+    const container = document.getElementById('range-container');
+    if (!container) return;
+    
     container.innerHTML = ''; // 清空載入中文字
 
+    // 分組顯示：先顯示 U 系列，再顯示 B 系列 (可選)
     ALL_UNITS.forEach(unit => {
         const div = document.createElement('div');
         div.className = 'range-card'; 
         div.id = 'btn-' + unit;
-        // 點擊事件
         div.onclick = function() { toggleUnit(unit); };
         
-        // 顯示名稱 (如果是 B6U1 可以顯示得好看一點，例如 "Book 6 U1")
+        // 名稱美化
         let displayName = unit;
-        if (unit === 'B6U1') displayName = 'B6 U1';
+        if (unit.startsWith('B')) displayName = unit.replace('B', 'Book ').replace('U', ' U');
 
         div.innerHTML = `
             <span class="range-name">${displayName}</span>
@@ -98,7 +151,6 @@ function generateRangeButtons() {
     });
 }
 
-// 切換單元選擇
 function toggleUnit(unit) {
     const index = selectedUnits.indexOf(unit);
     if (index > -1) {
@@ -109,7 +161,6 @@ function toggleUnit(unit) {
     updateRangeUI();
 }
 
-// 全選/清除
 function toggleAllUnits() {
     if (selectedUnits.length === ALL_UNITS.length) {
         selectedUnits = [];
@@ -119,7 +170,6 @@ function toggleAllUnits() {
     updateRangeUI();
 }
 
-// 更新畫面上的按鈕狀態
 function updateRangeUI() {
     ALL_UNITS.forEach(unit => {
         const btn = document.getElementById('btn-' + unit);
@@ -131,7 +181,6 @@ function updateRangeUI() {
             }
         }
     });
-    
     document.getElementById('range-warning').style.display = 'none';
 }
 
@@ -169,7 +218,7 @@ function startQuiz(mode) {
     isProcessing = false;
     
     if (vocabData.length === 0) {
-        alert("資料庫讀取中，請稍後...");
+        alert("資料庫尚未載入，請稍候...");
         return;
     }
 
@@ -248,12 +297,13 @@ function renderQuestion() {
         }
 
         let options = [currentQ];
-        // 錯誤選項從所有資料中隨機挑選
-        while (options.length < 4) {
+        let safetyCounter = 0;
+        while (options.length < 4 && safetyCounter < 100) {
             const randomItem = vocabData[Math.floor(Math.random() * vocabData.length)];
             if (!options.some(o => o.id === randomItem.id)) {
                 options.push(randomItem);
             }
+            safetyCounter++;
         }
         options.sort(() => 0.5 - Math.random());
 
