@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>國中第五冊 (Book 5) 單字測驗</title>
+    <title>國中英語單字測驗 (Book 5 & 6)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,37 +23,16 @@
     <div class="feedback-overlay" id="feedback-icon"></div>
 
     <div id="start-screen">
-        <h1>國中第五冊 (Book 5) 單字測驗</h1>
+        <h1>國中英語單字測驗 (Book 5 & 6)</h1>
         <p>每回隨機測驗 20 題<br>通過標準：答對率 80%</p>
 
         <div class="range-selector">
             <h3>請選擇單字範圍 (可多選)：</h3>
+            
             <div class="range-options">
-                <div class="range-card" id="btn-U1" onclick="toggleUnit('U1')">
-                    <span class="range-name">U1</span>
-                    <span class="check-mark hidden" id="check-U1">✅</span>
-                </div>
-                <div class="range-card" id="btn-U2" onclick="toggleUnit('U2')">
-                    <span class="range-name">U2</span>
-                    <span class="check-mark hidden" id="check-U2">✅</span>
-                </div>
-                <div class="range-card" id="btn-U3" onclick="toggleUnit('U3')">
-                    <span class="range-name">U3</span>
-                    <span class="check-mark hidden" id="check-U3">✅</span>
-                </div>
-                <div class="range-card" id="btn-U4" onclick="toggleUnit('U4')">
-                    <span class="range-name">U4</span>
-                    <span class="check-mark hidden" id="check-U4">✅</span>
-                </div>
-                <div class="range-card" id="btn-U5" onclick="toggleUnit('U5')">
-                    <span class="range-name">U5</span>
-                    <span class="check-mark hidden" id="check-U5">✅</span>
-                </div>
-                <div class="range-card" id="btn-U6" onclick="toggleUnit('U6')">
-                    <span class="range-name">U6</span>
-                    <span class="check-mark hidden" id="check-U6">✅</span>
-                </div>
+                <p>正在讀取單字庫...</p>
             </div>
+
             <button class="btn-small" onclick="toggleAllUnits()">全選 / 清除</button>
             <p id="range-warning" style="color:red; font-size:0.9rem; display:none;">請至少選擇一個單元！</p>
         </div>
@@ -89,7 +68,8 @@
     </div>
 </div>
 
-<script src="vocab.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
 <script src="script.js"></script>
 
 </body>
