@@ -1,7 +1,7 @@
 // 全域變數
 let currentMode = ''; 
-// 定義所有單元 (U1 ~ U6)
-const ALL_UNITS = ['U1', 'U2', 'U3', 'U4', 'U5', 'U6'];
+// 定義所有單元 (Book 5 U1-U6 + Book 6 U1)
+const ALL_UNITS = ['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'B6U1'];
 // 預設全選
 let selectedUnits = [...ALL_UNITS]; 
 
@@ -51,10 +51,13 @@ function updateRangeUI() {
     // 重置所有按鈕樣式
     ALL_UNITS.forEach(unit => {
         const btn = document.getElementById('btn-' + unit);
-        if (selectedUnits.includes(unit)) {
-            btn.classList.add('selected');
-        } else {
-            btn.classList.remove('selected');
+        // B6U1 在 HTML ID 是 btn-B6U1，其他是 btn-U1...
+        if (btn) {
+            if (selectedUnits.includes(unit)) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
         }
     });
     
@@ -105,7 +108,7 @@ function startQuiz(mode) {
     let filteredData = vocabData.filter(item => selectedUnits.includes(item.unit));
 
     if (filteredData.length === 0) {
-        alert("錯誤：所選範圍沒有單字資料！");
+        alert("錯誤：所選範圍沒有單字資料！(請確認 vocab.js 是否有填入單字)");
         return;
     }
 
@@ -331,7 +334,7 @@ function finishQuiz() {
     
     // 設定結果標題
     let rangeTitle = selectedUnits.join(" + ");
-    if (selectedUnits.length === ALL_UNITS.length) rangeTitle = `全範圍 (Book 5)`;
+    if (selectedUnits.length === ALL_UNITS.length) rangeTitle = `全範圍 (Book 5 & 6)`;
     
     document.getElementById('final-score-title').textContent = `${rangeTitle} 測驗結果`;
 
