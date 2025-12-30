@@ -29,12 +29,14 @@
         <div class="range-selector">
             <h3>請選擇單字範圍 (可多選)：</h3>
             
-            <div class="range-options">
-                <p>正在讀取單字庫...</p>
+            <div class="range-options" id="range-container">
+                <p id="loading-text" style="color:#666;">正在讀取單字庫...</p>
             </div>
 
             <button class="btn-small" onclick="toggleAllUnits()">全選 / 清除</button>
             <p id="range-warning" style="color:red; font-size:0.9rem; display:none;">請至少選擇一個單元！</p>
+            
+            <p id="update-status" style="color: green; font-size: 0.8rem; margin-top: 5px; height: 1.2em;"></p>
         </div>
 
         <div class="action-buttons">
