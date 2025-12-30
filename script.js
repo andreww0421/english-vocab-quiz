@@ -1,7 +1,10 @@
 // 全域變數
 let currentMode = ''; 
-// 改為陣列來儲存選擇的單元，預設全選
-let selectedUnits = ['U4', 'U5', 'U6']; 
+// 定義所有單元
+const ALL_UNITS = ['U3', 'U4', 'U5', 'U6'];
+// 預設全選
+let selectedUnits = [...ALL_UNITS]; 
+
 let questionList = [];
 let currentIndex = 0;
 let score = 0;
@@ -35,11 +38,10 @@ function toggleUnit(unit) {
 
 // 全選/取消全選
 function toggleAllUnits() {
-    const allUnits = ['U4', 'U5', 'U6'];
-    if (selectedUnits.length === allUnits.length) {
+    if (selectedUnits.length === ALL_UNITS.length) {
         selectedUnits = []; // 清除
     } else {
-        selectedUnits = [...allUnits]; // 全選
+        selectedUnits = [...ALL_UNITS]; // 全選
     }
     updateRangeUI();
 }
@@ -47,7 +49,7 @@ function toggleAllUnits() {
 // 更新畫面上的按鈕狀態
 function updateRangeUI() {
     // 重置所有按鈕樣式
-    ['U4', 'U5', 'U6'].forEach(unit => {
+    ALL_UNITS.forEach(unit => {
         const btn = document.getElementById('btn-' + unit);
         if (selectedUnits.includes(unit)) {
             btn.classList.add('selected');
@@ -61,7 +63,7 @@ function updateRangeUI() {
 }
 
 function updateCheckmarks() {
-    ['U4', 'U5', 'U6'].forEach(r => {
+    ALL_UNITS.forEach(r => {
         if (localStorage.getItem('pass_' + r) === 'true') {
             const check = document.getElementById('check-' + r);
             if(check) check.classList.remove('hidden');
@@ -328,9 +330,8 @@ function finishQuiz() {
     const percentage = Math.round((score / questionList.length) * 100);
     
     // 設定結果標題
-    // 如果全選，顯示 "全範圍"，否則顯示 "U4, U6" 這樣的字串
     let rangeTitle = selectedUnits.join(" + ");
-    if (selectedUnits.length === 3) rangeTitle = "全範圍 (U4-U6)";
+    if (selectedUnits.length === ALL_UNITS.length) rangeTitle = `全範圍 (${ALL_UNITS[0]}-${ALL_UNITS[ALL_UNITS.length-1]})`;
     
     document.getElementById('final-score-title').textContent = `${rangeTitle} 測驗結果`;
 
