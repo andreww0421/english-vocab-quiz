@@ -1,6 +1,6 @@
 // 單字資料庫
 const vocabData = [
-    // --- U6 單字 (原本的 42 個) ---
+    // --- U6 單字 ---
     { id: 101, unit: "U6", en: "apartment", ph: "[ə`partmənt]", zh: "公寓" },
     { id: 102, unit: "U6", en: "glad", ph: "[glæd]", zh: "高興的" },
     { id: 103, unit: "U6", en: "town", ph: "[taʊn]", zh: "城鎮" },
@@ -34,7 +34,7 @@ const vocabData = [
     { id: 131, unit: "U6", en: "used to", ph: "[`just tə]", zh: "過去時常..." },
     { id: 132, unit: "U6", en: "appear", ph: "[ə`pɪr]", zh: "似乎" },
     { id: 133, unit: "U6", en: "serious", ph: "[`sɪrɪəs]", zh: "認真的" },
-    { id: 134, unit: "U6", en: "lie", ph: "[laɪ]", zh: "躺；臥 (現在分詞為 lying)" },
+    { id: 134, unit: "U6", en: "lie", ph: "[laɪ]", zh: "躺；臥" },
     { id: 135, unit: "U6", en: "draw", ph: "[drɔ]", zh: "提取 (水、錢)" },
     { id: 136, unit: "U6", en: "spell", ph: "[spɛl]", zh: "咒語" },
     { id: 137, unit: "U6", en: "worthless", ph: "[`wɜθlɪs]", zh: "無價值的" },
@@ -44,7 +44,7 @@ const vocabData = [
     { id: 141, unit: "U6", en: "fairy", ph: "[`fɛrɪ]", zh: "精靈；仙子" },
     { id: 142, unit: "U6", en: "jewel", ph: "[`dʒuəl]", zh: "寶石" },
 
-    // --- U5 單字 (新增的 51 個) ---
+    // --- U5 單字 ---
     { id: 1, unit: "U5", en: "arrive", ph: "[ə`raɪv]", zh: "抵達" },
     { id: 2, unit: "U5", en: "planet", ph: "[`plænɪt]", zh: "行星" },
     { id: 3, unit: "U5", en: "line", ph: "[laɪn]", zh: "隊伍；直線" },
@@ -95,5 +95,50 @@ const vocabData = [
     { id: 48, unit: "U5", en: "anime", ph: "[`ænəme]", zh: "(日本的)動畫片" },
     { id: 49, unit: "U5", en: "artist", ph: "[`ɑrtɪst]", zh: "藝術家" },
     { id: 50, unit: "U5", en: "college", ph: "[`kɑlɪdʒ]", zh: "大學" },
-    { id: 51, unit: "U5", en: "attention", ph: "[ə`tɛnʃən]", zh: "注意" }
+    { id: 51, unit: "U5", en: "attention", ph: "[ə`tɛnʃən]", zh: "注意" },
+
+    // --- U4 單字 (新增的 43 個) ---
+    { id: 201, unit: "U4", en: "gate", ph: "[get]", zh: "大門" },
+    { id: 202, unit: "U4", en: "file", ph: "[faɪl]", zh: "檔案" },
+    { id: 203, unit: "U4", en: "quiz", ph: "[kwɪz]", zh: "小考" },
+    { id: 204, unit: "U4", en: "blackboard", ph: "[`blæk,bɔrd]", zh: "黑板" },
+    { id: 205, unit: "U4", en: "chalk", ph: "[tʃɔk]", zh: "粉筆" },
+    { id: 206, unit: "U4", en: "screen", ph: "[skrin]", zh: "螢幕" },
+    { id: 207, unit: "U4", en: "error", ph: "[`ɛrɚ]", zh: "錯誤" },
+    { id: 208, unit: "U4", en: "button", ph: "[`bʌtṇ]", zh: "按鈕；鈕扣" },
+    { id: 209, unit: "U4", en: "enter", ph: "[`ɛntɚ]", zh: "輸入；進入" },
+    { id: 210, unit: "U4", en: "wake word", ph: "[`wek ,wɝd]", zh: "喚醒字詞" },
+    { id: 211, unit: "U4", en: "whether", ph: "[`(h)wɛðɚ]", zh: "是否" },
+    { id: 212, unit: "U4", en: "list", ph: "[lɪst]", zh: "清單；列出" },
+    { id: 213, unit: "U4", en: "voice assistant", ph: "[`vɔɪs ə`sɪstənt]", zh: "語音助理" },
+    { id: 214, unit: "U4", en: "machine", ph: "[mə`ʃin]", zh: "機器" },
+    { id: 215, unit: "U4", en: "dozen", ph: "[`dʌzṇ]", zh: "(一)打" },
+    { id: 216, unit: "U4", en: "refrigerator", ph: "[rɪ`frɪdʒə,retɚ]", zh: "冰箱" },
+    { id: 217, unit: "U4", en: "upload", ph: "[ʌp`lod]", zh: "上傳" },
+    { id: 218, unit: "U4", en: "e-mail", ph: "[`i,mel]", zh: "電子郵件" },
+    { id: 219, unit: "U4", en: "key", ph: "[ki]", zh: "鑰匙" },
+    { id: 220, unit: "U4", en: "shopkeeper", ph: "[`ʃɑp,kipɚ]", zh: "店主" },
+    { id: 221, unit: "U4", en: "cellphone", ph: "[`sɛl,fon]", zh: "手機" },
+    { id: 222, unit: "U4", en: "collect", ph: "[kə`lɛkt]", zh: "收集" },
+    { id: 223, unit: "U4", en: "outside", ph: "[`aʊt`saɪd]", zh: "在外面；外面(的)" },
+    { id: 224, unit: "U4", en: "wallet", ph: "[`wɑlɪt]", zh: "錢包" },
+    { id: 225, unit: "U4", en: "couch", ph: "[kaʊtʃ]", zh: "沙發" },
+    { id: 226, unit: "U4", en: "lamp", ph: "[læmp]", zh: "檯燈" },
+    { id: 227, unit: "U4", en: "program", ph: "[`progræm]", zh: "節目" },
+    { id: 228, unit: "U4", en: "modern", ph: "[`mɑdɚn]", zh: "現代的" },
+    { id: 229, unit: "U4", en: "cross that bridge when one comes to it", ph: "[krɔs ðæt brɪdʒ hwen wʌn kʌmz tu ɪt]", zh: "船到橋頭自然直" },
+    { id: 230, unit: "U4", en: "honey", ph: "[`hʌnɪ]", zh: "親愛的" },
+    { id: 231, unit: "U4", en: "save", ph: "[sev]", zh: "儲存" },
+    { id: 232, unit: "U4", en: "through", ph: "[θru]", zh: "透過；憑藉" },
+    { id: 233, unit: "U4", en: "if", ph: "[ɪf]", zh: "是否" },
+    { id: 234, unit: "U4", en: "not... anymore", ph: "[nɑt ... `ɛnɪmɔr]", zh: "不再..." },
+    { id: 235, unit: "U4", en: "the cloud", ph: "[ðə `klaʊd]", zh: "雲端" },
+    { id: 236, unit: "U4", en: "type", ph: "[taɪp]", zh: "打字" },
+    { id: 237, unit: "U4", en: "stand for", ph: "[`stænd fɔr]", zh: "代表" },
+    { id: 238, unit: "U4", en: "set", ph: "[sɛt]", zh: "設定" },
+    { id: 239, unit: "U4", en: "shape", ph: "[ʃep]", zh: "塑造" },
+    { id: 240, unit: "U4", en: "code", ph: "[kod]", zh: "碼" },
+    { id: 241, unit: "U4", en: "connect", ph: "[kə`nɛkt]", zh: "連接" },
+    { id: 242, unit: "U4", en: "product", ph: "[`prɑdʌkt]", zh: "產品" },
+    { id: 243, unit: "U4", en: "everywhere", ph: "[`ɛvrɪ,hwɛr]", zh: "到處" }
 ];
