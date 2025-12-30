@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>國中英語單字測驗 (Book 5 & 6)</title>
+    <title>國中第五冊 (Book 5) 單字測驗</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,13 +23,11 @@
     <div class="feedback-overlay" id="feedback-icon"></div>
 
     <div id="start-screen">
-        <h1>國中英語單字測驗 (Book 5 & 6)</h1>
+        <h1>國中第五冊 (Book 5) 單字測驗</h1>
         <p>每回隨機測驗 20 題<br>通過標準：答對率 80%</p>
 
         <div class="range-selector">
             <h3>請選擇單字範圍 (可多選)：</h3>
-            
-            <h4 style="margin-bottom: 10px; color: #555;">第五冊 (Book 5)</h4>
             <div class="range-options">
                 <div class="range-card" id="btn-U1" onclick="toggleUnit('U1')">
                     <span class="range-name">U1</span>
@@ -56,15 +54,6 @@
                     <span class="check-mark hidden" id="check-U6">✅</span>
                 </div>
             </div>
-
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #555;">第六冊 (Book 6)</h4>
-            <div class="range-options">
-                <div class="range-card" id="btn-B6U1" onclick="toggleUnit('B6U1')">
-                    <span class="range-name">U1</span>
-                    <span class="check-mark hidden" id="check-B6U1">✅</span>
-                </div>
-                </div>
-
             <button class="btn-small" onclick="toggleAllUnits()">全選 / 清除</button>
             <p id="range-warning" style="color:red; font-size:0.9rem; display:none;">請至少選擇一個單元！</p>
         </div>
