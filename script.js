@@ -1,7 +1,7 @@
 // 全域變數
 let currentMode = ''; 
-// 定義所有單元
-const ALL_UNITS = ['U2', 'U3', 'U4', 'U5', 'U6'];
+// 定義所有單元 (U1 ~ U6)
+const ALL_UNITS = ['U1', 'U2', 'U3', 'U4', 'U5', 'U6'];
 // 預設全選
 let selectedUnits = [...ALL_UNITS]; 
 
@@ -330,9 +330,8 @@ function finishQuiz() {
     const percentage = Math.round((score / questionList.length) * 100);
     
     // 設定結果標題
-    // 如果全選，顯示 "全範圍"，否則顯示 "U2 + U3..." 這樣的字串
     let rangeTitle = selectedUnits.join(" + ");
-    if (selectedUnits.length === ALL_UNITS.length) rangeTitle = `全範圍 (${ALL_UNITS[0]}-${ALL_UNITS[ALL_UNITS.length-1]})`;
+    if (selectedUnits.length === ALL_UNITS.length) rangeTitle = `全範圍 (Book 5)`;
     
     document.getElementById('final-score-title').textContent = `${rangeTitle} 測驗結果`;
 
