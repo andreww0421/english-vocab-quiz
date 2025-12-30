@@ -1,4 +1,4 @@
-// 單字資料庫
+// 單字資料庫 (國中第五冊 U1 ~ U6)
 const vocabData = [
     // --- U6 單字 ---
     { id: 101, unit: "U6", en: "apartment", ph: "[ə`partmənt]", zh: "公寓" },
@@ -193,7 +193,7 @@ const vocabData = [
     { id: 348, unit: "U3", en: "brain", ph: "[bren]", zh: "頭腦" },
     { id: 349, unit: "U3", en: "damage", ph: "[`dæmɪdʒ]", zh: "損害" },
 
-    // --- U2 單字 (新增的 51 個) ---
+    // --- U2 單字 ---
     { id: 401, unit: "U2", en: "actor", ph: "[`æktɚ]", zh: "演員" },
     { id: 402, unit: "U2", en: "act", ph: "[ækt]", zh: "表演" },
     { id: 403, unit: "U2", en: "touch", ph: "[tʌtʃ]", zh: "觸動；碰觸" },
@@ -221,7 +221,7 @@ const vocabData = [
     { id: 425, unit: "U2", en: "towel", ph: "[`taʊəl]", zh: "毛巾" },
     { id: 426, unit: "U2", en: "comb", ph: "[kom]", zh: "梳子；梳理" },
     { id: 427, unit: "U2", en: "bat", ph: "[bæt]", zh: "蝙蝠" },
-    { id: 428, unit: "U2", en: "lie", ph: "[laɪ]", zh: "謊言；說謊 (現在分詞為 lying)" },
+    { id: 428, unit: "U2", en: "lie", ph: "[laɪ]", zh: "謊言；說謊" },
     { id: 429, unit: "U2", en: "fake", ph: "[fek]", zh: "假的；偽造的" },
     { id: 430, unit: "U2", en: "newspaper", ph: "[`njuz,pepɚ]", zh: "報紙" },
     { id: 431, unit: "U2", en: "nobody", ph: "[`nobɑdɪ]", zh: "無人" },
@@ -244,5 +244,56 @@ const vocabData = [
     { id: 448, unit: "U2", en: "by design", ph: "[,baɪ dɪ`zaɪn]", zh: "故意；特意" },
     { id: 449, unit: "U2", en: "difference", ph: "[`dɪf(ə)rəns]", zh: "差別" },
     { id: 450, unit: "U2", en: "source", ph: "[sɔrs]", zh: "來源" },
-    { id: 451, unit: "U2", en: "fact-checking", ph: "[`fækt,tʃɛkɪŋ]", zh: "查證事實的" }
+    { id: 451, unit: "U2", en: "fact-checking", ph: "[`fækt,tʃɛkɪŋ]", zh: "查證事實的" },
+
+    // --- U1 單字 (新增的 49 個) ---
+    { id: 501, unit: "U1", en: "yet", ph: "[jɛt]", zh: "還（沒）" },
+    { id: 502, unit: "U1", en: "already", ph: "[ɔl`rɛdɪ]", zh: "已經" },
+    { id: 503, unit: "U1", en: "diet", ph: "[`daɪət]", zh: "節食；飲食" },
+    { id: 504, unit: "U1", en: "since", ph: "[sɪns]", zh: "自從" },
+    { id: 505, unit: "U1", en: "photo", ph: "[`foto]", zh: "照片" },
+    { id: 506, unit: "U1", en: "crazy", ph: "[`krezɪ]", zh: "荒唐的；瘋狂的" },
+    { id: 507, unit: "U1", en: "as... as possible", ph: "[æz ... æz `pɑsəb!]", zh: "盡可能的..." },
+    { id: 508, unit: "U1", en: "slim", ph: "[slɪm]", zh: "苗條的；微小的" },
+    { id: 509, unit: "U1", en: "tip", ph: "[tɪp]", zh: "訣竅" },
+    { id: 510, unit: "U1", en: "type", ph: "[taɪp]", zh: "類型" },
+    { id: 511, unit: "U1", en: "ever", ph: "[`ɛvɚ]", zh: "曾經" },
+    { id: 512, unit: "U1", en: "habit", ph: "[`hæbɪt]", zh: "習慣" },
+    { id: 513, unit: "U1", en: "take action", ph: "[,tek `ækʃən]", zh: "採取行動" },
+    { id: 514, unit: "U1", en: "choice", ph: "[tʃɔɪs]", zh: "選擇" },
+    { id: 515, unit: "U1", en: "gym", ph: "[dʒɪm]", zh: "健身房；體育館" },
+    { id: 516, unit: "U1", en: "abroad", ph: "[ə`brɔd]", zh: "到國外" },
+    { id: 517, unit: "U1", en: "cheat", ph: "[tʃit]", zh: "作弊；欺騙" },
+    { id: 518, unit: "U1", en: "copy", ph: "[`kɑpɪ]", zh: "抄襲；複製" },
+    { id: 519, unit: "U1", en: "race", ph: "[res]", zh: "速度競賽" },
+    { id: 520, unit: "U1", en: "letter", ph: "[`lɛtɚ]", zh: "信" },
+    { id: 521, unit: "U1", en: "teenager", ph: "[`tin,edʒɚ]", zh: "青少年" },
+    { id: 522, unit: "U1", en: "senior high school", ph: "[`sinjɚ `haɪ ,skul]", zh: "高中" },
+    { id: 523, unit: "U1", en: "understand", ph: "[,ʌndɚ`stænd]", zh: "瞭解" },
+    { id: 524, unit: "U1", en: "drum", ph: "[drʌm]", zh: "鼓" },
+    { id: 525, unit: "U1", en: "joy", ph: "[dʒɔɪ]", zh: "樂趣；喜悅" },
+    { id: 526, unit: "U1", en: "pop", ph: "[pɑp]", zh: "流行音樂" },
+    { id: 527, unit: "U1", en: "lately", ph: "[`letlɪ]", zh: "最近" },
+    { id: 528, unit: "U1", en: "angry", ph: "[`æŋgrɪ]", zh: "生氣的" },
+    { id: 529, unit: "U1", en: "serious", ph: "[`sɪrɪəs]", zh: "嚴重的" },
+    { id: 530, unit: "U1", en: "interest", ph: "[`ɪnt(ə)rɪst]", zh: "興趣；使感興趣" },
+    { id: 531, unit: "U1", en: "garbage", ph: "[`gɑrbɪdʒ]", zh: "垃圾" },
+    { id: 532, unit: "U1", en: "unhappy", ph: "[ʌn`hæpɪ]", zh: "不快樂的" },
+    { id: 533, unit: "U1", en: "wish", ph: "[wɪʃ]", zh: "祝福" },
+    { id: 534, unit: "U1", en: "envelope", ph: "[`ɛnvə,lop]", zh: "信封" },
+    { id: 535, unit: "U1", en: "stamp", ph: "[stæmp]", zh: "郵票" },
+    { id: 536, unit: "U1", en: "be all ears", ph: "[bi ɔl `ɪrz]", zh: "洗耳恭聽" },
+    { id: 537, unit: "U1", en: "at least", ph: "[æt `list]", zh: "至少" },
+    { id: 538, unit: "U1", en: "You got it.", ph: "[ju `gɑt ɪt]", zh: "沒錯。" },
+    { id: 539, unit: "U1", en: "stay in shape", ph: "[,ste ɪn `ʃep]", zh: "保持健康" },
+    { id: 540, unit: "U1", en: "star", ph: "[stɑr]", zh: "明星" },
+    { id: 541, unit: "U1", en: "call", ph: "[kɔl]", zh: "稱呼" },
+    { id: 542, unit: "U1", en: "talk... into", ph: "[,tɔk `ɪntə]", zh: "說服（某人）做..." },
+    { id: 543, unit: "U1", en: "skip", ph: "[skɪp]", zh: "省略" },
+    { id: 544, unit: "U1", en: "appearance", ph: "[ə`pɪrəns]", zh: "外表；外觀" },
+    { id: 545, unit: "U1", en: "weight", ph: "[wet]", zh: "體重" },
+    { id: 546, unit: "U1", en: "balanced", ph: "[`bælənst]", zh: "均衡的" },
+    { id: 547, unit: "U1", en: "mood", ph: "[mud]", zh: "心情" },
+    { id: 548, unit: "U1", en: "exam", ph: "[ɪg`zæm]", zh: "考試" },
+    { id: 549, unit: "U1", en: "feeling", ph: "[`filɪŋ]", zh: "情緒；感覺" }
 ];
