@@ -30,9 +30,42 @@ body {
     overflow: hidden;
 }
 
-h1 { color: #333; margin-bottom: 1rem; }
+h1 { color: #333; margin-bottom: 0.5rem; }
 
-/* 進度條 (總進度) - 藍色 */
+/* 範圍選擇卡片樣式 */
+.range-selector { margin-bottom: 20px; }
+.range-selector h3 { color: #666; font-size: 1rem; margin-bottom: 10px; }
+.range-options { display: flex; gap: 10px; justify-content: center; }
+.range-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px 10px;
+    cursor: pointer;
+    flex: 1;
+    transition: all 0.2s;
+    position: relative;
+    background: #fff;
+}
+.range-card:hover { background-color: #f8f9fa; }
+.range-card.selected {
+    border-color: var(--primary);
+    background-color: #eaf4ff;
+    color: var(--primary);
+    font-weight: bold;
+}
+.check-mark {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: white;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.action-buttons { margin-top: 20px; }
+
+/* 進度條 (總進度) */
 .progress-container {
     position: absolute;
     top: 0;
@@ -49,10 +82,10 @@ h1 { color: #333; margin-bottom: 1rem; }
     transition: width 0.3s ease;
 }
 
-/* 倒數計時條 (單題限時) - 紅色 */
+/* 倒數計時條 */
 .timer-container {
     position: absolute;
-    top: 6px; /* 在進度條下方 */
+    top: 6px;
     left: 0;
     width: 100%;
     height: 4px;
@@ -82,14 +115,10 @@ h1 { color: #333; margin-bottom: 1rem; }
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 20;
 }
-.combo-active {
-    opacity: 1;
-    transform: scale(1.2) rotate(-10deg);
-}
+.combo-active { opacity: 1; transform: scale(1.2) rotate(-10deg); }
 .combo-count { font-size: 2.5rem; }
 .combo-label { font-size: 1rem; display: block; }
 
-/* 答題回饋遮罩 */
 .feedback-overlay {
     position: absolute;
     top: 50%;
@@ -104,13 +133,12 @@ h1 { color: #333; margin-bottom: 1rem; }
 }
 .feedback-show { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
 
-/* 按鈕樣式 */
 .btn {
     background-color: var(--primary);
     color: white;
     border: none;
     padding: 12px 24px;
-    margin: 8px;
+    margin: 5px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 1rem;
@@ -120,11 +148,9 @@ h1 { color: #333; margin-bottom: 1rem; }
 .btn:hover { background-color: #357abd; transform: translateY(-2px); }
 .btn:active { transform: translateY(0); }
 .btn:disabled { background-color: #ccc; cursor: not-allowed; }
-
 .btn-purple { background-color: #9b59b6; }
 .btn-purple:hover { background-color: #8e44ad; }
 
-/* 選項按鈕與回饋狀態 */
 .btn-option {
     display: block;
     width: 100%;
@@ -134,21 +160,13 @@ h1 { color: #333; margin-bottom: 1rem; }
     color: #333;
     border: 2px solid #e0e0e0;
     position: relative;
+    padding: 12px;
 }
 .btn-option:hover:not(:disabled) { background-color: #f0f8ff; border-color: var(--primary); }
 
-.btn-correct {
-    background-color: #d4edda !important;
-    border-color: #28a745 !important;
-    color: #155724 !important;
-}
-.btn-wrong {
-    background-color: #f8d7da !important;
-    border-color: #dc3545 !important;
-    color: #721c24 !important;
-}
+.btn-correct { background-color: #d4edda !important; border-color: #28a745 !important; color: #155724 !important; }
+.btn-wrong { background-color: #f8d7da !important; border-color: #dc3545 !important; color: #721c24 !important; }
 
-/* 題目區域 */
 .question-header {
     display: flex;
     justify-content: space-between;
@@ -170,54 +188,25 @@ h1 { color: #333; margin-bottom: 1rem; }
     position: relative;
 }
 
-.phonetic {
-    display: block;
-    font-size: 1rem;
-    color: #7f8c8d;
-    margin-top: 5px;
-    font-weight: normal;
-}
-
-/* 語音按鈕 */
-.audio-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--primary);
-    font-size: 1.5rem;
-    margin-left: 10px;
-    vertical-align: middle;
-}
+.phonetic { display: block; font-size: 1rem; color: #7f8c8d; margin-top: 5px; font-weight: normal; }
+.audio-btn { background: none; border: none; cursor: pointer; color: var(--primary); font-size: 1.5rem; margin-left: 10px; vertical-align: middle; }
 .audio-btn:hover { color: #357abd; transform: scale(1.1); }
 
-/* 拼字輸入框 */
-.input-group {
-    margin: 20px 0;
-}
+.input-group { margin: 20px 0; }
 .spelling-input {
-    width: 70%;
-    padding: 12px;
-    font-size: 1.2rem;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    outline: none;
-    transition: border-color 0.3s;
+    width: 70%; padding: 12px; font-size: 1.2rem;
+    border: 2px solid #ddd; border-radius: 8px; outline: none; transition: border-color 0.3s;
 }
 .spelling-input:focus { border-color: var(--primary); }
 .spelling-input.correct { border-color: var(--success); background-color: #d4edda; }
 .spelling-input.wrong { border-color: var(--fail); background-color: #f8d7da; }
 
-/* 結果與狀態 */
 .hidden { display: none; }
 .result-pass { color: var(--success); font-weight: bold; font-size: 1.5rem; }
 .result-fail { color: var(--fail); font-weight: bold; font-size: 1.5rem; }
 
 .result-details {
-    margin-top: 20px;
-    text-align: left;
-    max-height: 300px;
-    overflow-y: auto;
-    border-top: 1px solid #eee;
+    margin-top: 20px; text-align: left; max-height: 300px; overflow-y: auto; border-top: 1px solid #eee;
 }
 .review-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
 .review-item.wrong { color: var(--fail); }
