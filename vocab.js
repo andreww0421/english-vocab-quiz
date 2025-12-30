@@ -1,5 +1,9 @@
-// 單字資料庫 (國中第五冊 U1 ~ U6)
+// 單字資料庫
 const vocabData = [
+    // ==========================================
+    //               第五冊 (Book 5)
+    // ==========================================
+
     // --- U6 單字 ---
     { id: 101, unit: "U6", en: "apartment", ph: "[ə`partmənt]", zh: "公寓" },
     { id: 102, unit: "U6", en: "glad", ph: "[glæd]", zh: "高興的" },
@@ -246,7 +250,7 @@ const vocabData = [
     { id: 450, unit: "U2", en: "source", ph: "[sɔrs]", zh: "來源" },
     { id: 451, unit: "U2", en: "fact-checking", ph: "[`fækt,tʃɛkɪŋ]", zh: "查證事實的" },
 
-    // --- U1 單字 (新增的 49 個) ---
+    // --- U1 單字 ---
     { id: 501, unit: "U1", en: "yet", ph: "[jɛt]", zh: "還（沒）" },
     { id: 502, unit: "U1", en: "already", ph: "[ɔl`rɛdɪ]", zh: "已經" },
     { id: 503, unit: "U1", en: "diet", ph: "[`daɪət]", zh: "節食；飲食" },
@@ -295,5 +299,14 @@ const vocabData = [
     { id: 546, unit: "U1", en: "balanced", ph: "[`bælənst]", zh: "均衡的" },
     { id: 547, unit: "U1", en: "mood", ph: "[mud]", zh: "心情" },
     { id: 548, unit: "U1", en: "exam", ph: "[ɪg`zæm]", zh: "考試" },
-    { id: 549, unit: "U1", en: "feeling", ph: "[`filɪŋ]", zh: "情緒；感覺" }
+    { id: 549, unit: "U1", en: "feeling", ph: "[`filɪŋ]", zh: "情緒；感覺" },
+
+    // ==========================================
+    //               第六冊 (Book 6)
+    // ==========================================
+
+    // --- U1 單字 ---
+    // 請將圖片中的單字填入這裡，範例如下：
+    { id: 601, unit: "B6U1", en: "word", ph: "[wɝd]", zh: "單字 (範例)" },
+    // { id: 602, unit: "B6U1", en: "...", ph: "[...]", zh: "..." },
 ];
