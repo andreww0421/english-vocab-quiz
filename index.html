@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英語單字挑戰 (U5 + U6)</title>
+    <title>英語單字測驗 (U4-U6)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -27,21 +27,23 @@
         <p>每回隨機測驗 20 題<br>通過標準：答對率 80%</p>
 
         <div class="range-selector">
-            <h3>請選擇測驗範圍：</h3>
+            <h3>請選擇單字範圍 (可多選)：</h3>
             <div class="range-options">
-                <div class="range-card selected" onclick="selectRange('U5', this)">
-                    <span class="range-name">第五冊 U5</span>
+                <div class="range-card" id="btn-U4" onclick="toggleUnit('U4')">
+                    <span class="range-name">U4</span>
+                    <span class="check-mark hidden" id="check-U4">✅</span>
+                </div>
+                <div class="range-card" id="btn-U5" onclick="toggleUnit('U5')">
+                    <span class="range-name">U5</span>
                     <span class="check-mark hidden" id="check-U5">✅</span>
                 </div>
-                <div class="range-card" onclick="selectRange('U6', this)">
-                    <span class="range-name">第五冊 U6</span>
+                <div class="range-card" id="btn-U6" onclick="toggleUnit('U6')">
+                    <span class="range-name">U6</span>
                     <span class="check-mark hidden" id="check-U6">✅</span>
                 </div>
-                <div class="range-card" onclick="selectRange('ALL', this)">
-                    <span class="range-name">全範圍 (U5+U6)</span>
-                    <span class="check-mark hidden" id="check-ALL">✅</span>
-                </div>
             </div>
+            <button class="btn-small" onclick="toggleAllUnits()">全選 / 清除</button>
+            <p id="range-warning" style="color:red; font-size:0.9rem; display:none;">請至少選擇一個單元！</p>
         </div>
 
         <div class="action-buttons">
