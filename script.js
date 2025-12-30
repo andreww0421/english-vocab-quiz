@@ -1,6 +1,7 @@
 // 全域變數
 let currentMode = ''; 
-let currentRange = 'U5'; // 預設選擇 U5
+// 改為陣列來儲存選擇的單元，預設全選
+let selectedUnits = ['U4', 'U5', 'U6']; 
 let questionList = [];
 let currentIndex = 0;
 let score = 0;
@@ -13,23 +14,54 @@ let timeLimit = 10;
 let timeRemaining = 10;
 let isProcessing = false;
 
-// 初始化：檢查 LocalStorage 並顯示打勾
+// 初始化
 window.onload = function() {
     updateCheckmarks();
-    // 預設選中 U5 (已在 HTML class 設定，但這裡確保邏輯同步)
-    selectRange('U5', document.querySelector('.range-card.selected'));
+    updateRangeUI(); // 根據 selectedUnits 更新畫面
 };
 
-function selectRange(range, element) {
-    currentRange = range;
-    // UI 更新
-    document.querySelectorAll('.range-card').forEach(el => el.classList.remove('selected'));
-    element.classList.add('selected');
+// 切換單元選擇 (多選邏輯)
+function toggleUnit(unit) {
+    const index = selectedUnits.indexOf(unit);
+    if (index > -1) {
+        // 已經選了 -> 取消選擇
+        selectedUnits.splice(index, 1);
+    } else {
+        // 還沒選 -> 加入選擇
+        selectedUnits.push(unit);
+    }
+    updateRangeUI();
+}
+
+// 全選/取消全選
+function toggleAllUnits() {
+    const allUnits = ['U4', 'U5', 'U6'];
+    if (selectedUnits.length === allUnits.length) {
+        selectedUnits = []; // 清除
+    } else {
+        selectedUnits = [...allUnits]; // 全選
+    }
+    updateRangeUI();
+}
+
+// 更新畫面上的按鈕狀態
+function updateRangeUI() {
+    // 重置所有按鈕樣式
+    ['U4', 'U5', 'U6'].forEach(unit => {
+        const btn = document.getElementById('btn-' + unit);
+        if (selectedUnits.includes(unit)) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+    
+    // 隱藏警告訊息
+    document.getElementById('range-warning').style.display = 'none';
 }
 
 function updateCheckmarks() {
-    const ranges = ['U5', 'U6', 'ALL'];
-    ranges.forEach(r => {
+    ['U4', 'U5', 'U6'].forEach(r => {
         if (localStorage.getItem('pass_' + r) === 'true') {
             const check = document.getElementById('check-' + r);
             if(check) check.classList.remove('hidden');
@@ -48,6 +80,12 @@ function speakText(text) {
 }
 
 function startQuiz(mode) {
+    // 檢查是否有選擇至少一個單元
+    if (selectedUnits.length === 0) {
+        document.getElementById('range-warning').style.display = 'block';
+        return;
+    }
+
     currentMode = mode;
     score = 0;
     currentIndex = 0;
@@ -57,22 +95,22 @@ function startQuiz(mode) {
     isProcessing = false;
     
     if (typeof vocabData === 'undefined' || vocabData.length === 0) {
-        alert("錯誤：讀取不到單字資料，請檢查 vocab.js");
+        alert("錯誤：讀取不到單字資料");
         return;
     }
 
-    // 1. 根據範圍過濾單字
-    let filteredData = [];
-    if (currentRange === 'ALL') {
-        filteredData = [...vocabData];
-    } else {
-        filteredData = vocabData.filter(item => item.unit === currentRange);
+    // 1. 根據 selectedUnits 陣列過濾單字
+    let filteredData = vocabData.filter(item => selectedUnits.includes(item.unit));
+
+    if (filteredData.length === 0) {
+        alert("錯誤：所選範圍沒有單字資料！");
+        return;
     }
 
     // 2. 隨機打亂
     filteredData.sort(() => 0.5 - Math.random());
 
-    // 3. 只取前 20 題 (如果單字少於 20 則全取)
+    // 3. 只取前 20 題 (不足則取全部)
     questionList = filteredData.slice(0, 20);
 
     // 設定時間
@@ -136,12 +174,10 @@ function renderQuestion() {
             qTextEl.textContent = currentQ.zh;
         }
 
-        // 產生選項：1個正確 + 3個錯誤 (錯誤選項也要從目前的範圍池子裡挑，或者全域挑皆可，這裡從全域挑比較難)
-        // 為了增加難度，我們從全域 vocabData 挑錯誤選項，以免範圍太小選項太好猜
         let options = [currentQ];
+        // 錯誤選項從「所有單字」中挑選，增加混淆度，也避免單選一個單元時選項太少
         while (options.length < 4) {
             const randomItem = vocabData[Math.floor(Math.random() * vocabData.length)];
-            // 避免重複且 id 不同
             if (!options.some(o => o.id === randomItem.id)) {
                 options.push(randomItem);
             }
@@ -292,9 +328,10 @@ function finishQuiz() {
     const percentage = Math.round((score / questionList.length) * 100);
     
     // 設定結果標題
-    let rangeTitle = "";
-    if (currentRange === 'ALL') rangeTitle = "全範圍";
-    else rangeTitle = currentRange;
+    // 如果全選，顯示 "全範圍"，否則顯示 "U4, U6" 這樣的字串
+    let rangeTitle = selectedUnits.join(" + ");
+    if (selectedUnits.length === 3) rangeTitle = "全範圍 (U4-U6)";
+    
     document.getElementById('final-score-title').textContent = `${rangeTitle} 測驗結果`;
 
     document.getElementById('score-text').textContent = `得分：${percentage}% (${score} / ${questionList.length})`;
@@ -302,11 +339,14 @@ function finishQuiz() {
 
     const msgDiv = document.getElementById('pass-fail-msg');
     
-    // 通過標準：80%
+    // 通過標準
     if (percentage >= 80) {
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
-        // 儲存通過紀錄到 LocalStorage
-        localStorage.setItem('pass_' + currentRange, 'true');
+        
+        // 【重要】只有當使用者「只選擇了一個單元」來考，且通過時，才給予該單元的打勾勾
+        if (selectedUnits.length === 1) {
+            localStorage.setItem('pass_' + selectedUnits[0], 'true');
+        }
     } else {
         msgDiv.innerHTML = '<span class="result-fail">再接再厲！ (Fail)</span>';
     }
