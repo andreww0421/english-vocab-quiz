@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第五冊U6單字測驗</title>
+    <title>英語單字挑戰 (U5 + U6)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,37 +12,52 @@
     <div class="progress-container">
         <div class="progress-bar" id="total-progress"></div>
     </div>
-
     <div class="timer-container hidden" id="timer-container">
         <div class="timer-bar" id="timer-bar"></div>
     </div>
-
+    
     <div class="combo-box" id="combo-box">
         <span class="combo-label">COMBO</span>
         <span class="combo-count" id="combo-count">0</span>
     </div>
-
     <div class="feedback-overlay" id="feedback-icon"></div>
 
     <div id="start-screen">
-        <h1>第五冊U6單字測驗</h1>
-        <p>通過標準：答對率 60%</p>
-        <button class="btn" onclick="startQuiz('mixed')">🔊 開始測驗</button>
-        <br>
-        <button class="btn btn-purple" onclick="startQuiz('spelling')">⌨️ 拼字挑戰 (高難度)</button>
+        <h1>英語單字挑戰</h1>
+        <p>每回隨機測驗 20 題<br>通過標準：答對率 80%</p>
+
+        <div class="range-selector">
+            <h3>請選擇測驗範圍：</h3>
+            <div class="range-options">
+                <div class="range-card selected" onclick="selectRange('U5', this)">
+                    <span class="range-name">第五冊 U5</span>
+                    <span class="check-mark hidden" id="check-U5">✅</span>
+                </div>
+                <div class="range-card" onclick="selectRange('U6', this)">
+                    <span class="range-name">第五冊 U6</span>
+                    <span class="check-mark hidden" id="check-U6">✅</span>
+                </div>
+                <div class="range-card" onclick="selectRange('ALL', this)">
+                    <span class="range-name">全範圍 (U5+U6)</span>
+                    <span class="check-mark hidden" id="check-ALL">✅</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn" onclick="startQuiz('mixed')">🔊 開始測驗</button>
+            <button class="btn btn-purple" onclick="startQuiz('spelling')">⌨️ 拼字挑戰</button>
+        </div>
     </div>
 
     <div id="quiz-screen" class="hidden">
         <div class="question-header">
-            <span>題數: <span id="current-q">1</span> / <span id="total-q">10</span></span>
+            <span>題數: <span id="current-q">1</span> / <span id="total-q">20</span></span>
             <span id="timer-text" style="color:var(--fail); font-weight:bold;">10s</span>
         </div>
         
-        <div class="question-box" id="question-text">
-            </div>
-
+        <div class="question-box" id="question-text"></div>
         <div id="options-container"></div>
-
         <div id="spelling-container" class="input-group hidden">
             <input type="text" id="spelling-input" class="spelling-input" placeholder="輸入英文單字..." autocomplete="off">
             <button class="btn" onclick="submitSpelling()">送出</button>
@@ -51,13 +66,12 @@
 
     <div id="result-screen" class="hidden">
         <h1>測驗結果</h1>
+        <h2 id="final-score-title"></h2>
         <p id="score-text"></p>
         <p id="max-combo-text" style="color: var(--combo); font-weight: bold;"></p>
         <div id="pass-fail-msg"></div>
-        <button class="btn" onclick="location.reload()">重新測驗</button>
-        
-        <div class="result-details" id="review-list">
-            </div>
+        <button class="btn" onclick="location.reload()">回首頁</button>
+        <div class="result-details" id="review-list"></div>
     </div>
 </div>
 
