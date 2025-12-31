@@ -16,7 +16,7 @@ let timerInterval;
 let timeLimit = 10;
 let timeRemaining = 10;
 let isProcessing = false;
-let ttsRate = 0.9; // 預設語速
+let ttsRate = 1.0; // 預設語速改為 1.0
 
 // 你的 Google Sheet CSV 連結
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTxd32azbren8Y1VTFYqd_NhzKI7hyVEV2RLYYu8XHGsuipC-SbDgJDGU-6ayIRWZpEmIobLjuKCec/pub?output=csv'; 
@@ -64,8 +64,6 @@ function loadUserSettings() {
     if (isDarkMode) {
         document.body.classList.add('dark-mode');
     }
-
-    // 讀取語速 (可選，這裡先不存)
 }
 
 function updateMistakeBtn() {
