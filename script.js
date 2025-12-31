@@ -73,7 +73,10 @@ function loadGoogleSheetData() {
             if (vocabData.length === 0 || JSON.stringify(vocabData) !== JSON.stringify(newData)) {
                 processData(newData);
                 document.getElementById('update-status').textContent = "資料庫已更新至最新版本！";
-                setTimeout(() => document.getElementById('update-status').textContent = "", 3000);
+                setTimeout(() => {
+                    const statusEl = document.getElementById('update-status');
+                    if(statusEl) statusEl.textContent = "";
+                }, 3000);
             }
         },
         error: function(err) {
@@ -107,7 +110,6 @@ function processData(data) {
     updateRangeUI();
 }
 
-// ★★★ 核心修改：依照冊次分類按鈕 ★★★
 function generateRangeButtons() {
     const container = document.getElementById('range-container');
     if (!container) return;
@@ -123,10 +125,6 @@ function generateRangeButtons() {
     ALL_UNITS.forEach(unit => {
         let bookNum = 'Other';
         
-        // 判斷邏輯：
-        // 1. 如果開頭是 'B' (例如 B3U5)，取 B 後面的數字
-        // 2. 如果開頭是 'U' (例如 U1)，預設歸類為 Book 5 (依照舊資料慣例)
-        
         const matchB = unit.match(/^B(\d+)/i); // 偵測 B3, B6...
         
         if (matchB) {
@@ -140,7 +138,6 @@ function generateRangeButtons() {
     });
 
     // 依序產生 HTML
-    // 我們只顯示 1~6 冊和 Other
     const order = [1, 2, 3, 4, 5, 6, 'Other'];
 
     order.forEach(bookNum => {
@@ -167,15 +164,15 @@ function generateRangeButtons() {
                 div.id = 'btn-' + unit;
                 div.onclick = function() { toggleUnit(unit); };
                 
-                // 簡化按鈕文字：只顯示 Unit 號碼
-                // 例如 "B3U5" -> "Unit 5", "U1" -> "Unit 1"
+                // --- 修正後的按鈕名稱邏輯 ---
                 let shortName = unit;
-                const matchU = unit.match(/U(\d+)/i);
-                if (matchU) {
-                    shortName = `Unit ${matchU[1]}`; // 變成 "Unit 1"
-                } else if (unit.includes('&')) {
-                     // 處理 B6U3&4 這種合併單元
-                     shortName = unit.replace(/B\d+/, '').replace('U', 'Unit ');
+                
+                if (unit.startsWith('B')) {
+                    // 如果是 B 開頭 (如 B6U3&4)，把 "B數字" 去掉，剩下的 "U..." 換成 "Unit ..."
+                    shortName = unit.replace(/^B\d+/, '').replace('U', 'Unit ');
+                } else if (unit.startsWith('U')) {
+                    // 如果是 U 開頭 (如 U1)，直接把 "U" 換成 "Unit "
+                    shortName = unit.replace('U', 'Unit ');
                 }
 
                 div.innerHTML = `
