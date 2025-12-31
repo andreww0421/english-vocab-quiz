@@ -27,7 +27,7 @@ window.onload = function() {
         return;
     }
 
-    // 1. 先嘗試讀取快取 (讓使用者不用等)
+    // 1. 先嘗試讀取快取
     const cachedData = localStorage.getItem('cachedVocabData');
     if (cachedData) {
         console.log("使用本機快取資料");
@@ -42,7 +42,7 @@ window.onload = function() {
         }
     }
 
-    // 2. 背景讀取最新資料 (Google Sheet)
+    // 2. 背景讀取最新資料
     loadGoogleSheetData();
 };
 
@@ -51,9 +51,8 @@ function loadGoogleSheetData() {
         download: true,
         header: true,
         complete: function(results) {
-            // 資料轉換與清洗
             const newData = results.data
-                .filter(item => item.en && item.zh) // 去除空行
+                .filter(item => item.en && item.zh)
                 .map(item => ({
                     id: parseInt(item.id),
                     unit: item.unit ? item.unit.trim() : "Unknown",
@@ -63,61 +62,43 @@ function loadGoogleSheetData() {
                 }));
 
             if (newData.length === 0) {
-                console.warn("讀取到的資料為空，可能是權限問題或連結錯誤");
                 if (vocabData.length === 0) {
                     document.getElementById('loading-text').textContent = "讀取失敗：資料庫為空";
-                    alert("讀取失敗！請確認 Google 試算表已「發布到網路」。");
                 }
                 return;
             }
 
-            console.log("雲端資料讀取成功，筆數：", newData.length);
-
-            // 更新快取
             localStorage.setItem('cachedVocabData', JSON.stringify(newData));
 
-            // 如果原本沒資料，或資料有變動，重新渲染
             if (vocabData.length === 0 || JSON.stringify(vocabData) !== JSON.stringify(newData)) {
                 processData(newData);
                 document.getElementById('update-status').textContent = "資料庫已更新至最新版本！";
-                // 3秒後隱藏提示
-                setTimeout(() => {
-                    const statusEl = document.getElementById('update-status');
-                    if(statusEl) statusEl.textContent = "";
-                }, 3000);
-            } else {
-                document.getElementById('update-status').textContent = "目前已是最新版本";
+                setTimeout(() => document.getElementById('update-status').textContent = "", 3000);
             }
         },
         error: function(err) {
             console.error("下載失敗", err);
             if (vocabData.length === 0) {
                 document.getElementById('loading-text').textContent = "網路連線失敗";
-                alert("無法連線到 Google 試算表，請檢查網路。");
             }
         }
     });
 }
 
-// 處理資料並產生介面
 function processData(data) {
     vocabData = data;
     
-    // 自動抓取所有單元並排序
+    // 取得所有單元
     const unitSet = new Set(vocabData.map(item => item.unit));
-    
     ALL_UNITS = Array.from(unitSet).sort((a, b) => {
-        // 排序邏輯：B6U1 排在 U1~U6 後面
-        if (a.startsWith('B') && !b.startsWith('B')) return 1;
-        if (!a.startsWith('B') && b.startsWith('B')) return -1;
+        // 自然排序 (讓 B3 排在 B6 前面，U1 排在 U2 前面)
         return a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'});
     });
 
-    // 如果是第一次載入，預設全選
+    // 預設全選
     if (selectedUnits.length === 0) {
         selectedUnits = [...ALL_UNITS];
     } else {
-        // 過濾掉已經不存在的單元
         selectedUnits = selectedUnits.filter(u => ALL_UNITS.includes(u));
     }
 
@@ -126,28 +107,87 @@ function processData(data) {
     updateRangeUI();
 }
 
+// ★★★ 核心修改：依照冊次分類按鈕 ★★★
 function generateRangeButtons() {
     const container = document.getElementById('range-container');
     if (!container) return;
     
-    container.innerHTML = ''; // 清空載入中文字
+    container.innerHTML = ''; 
 
-    // 分組顯示：先顯示 U 系列，再顯示 B 系列 (可選)
+    // 定義分組容器
+    const books = {
+        1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 'Other': []
+    };
+
+    // 將單元分配到對應的冊次
     ALL_UNITS.forEach(unit => {
-        const div = document.createElement('div');
-        div.className = 'range-card'; 
-        div.id = 'btn-' + unit;
-        div.onclick = function() { toggleUnit(unit); };
+        let bookNum = 'Other';
         
-        // 名稱美化
-        let displayName = unit;
-        if (unit.startsWith('B')) displayName = unit.replace('B', 'Book ').replace('U', ' U');
+        // 判斷邏輯：
+        // 1. 如果開頭是 'B' (例如 B3U5)，取 B 後面的數字
+        // 2. 如果開頭是 'U' (例如 U1)，預設歸類為 Book 5 (依照舊資料慣例)
+        
+        const matchB = unit.match(/^B(\d+)/i); // 偵測 B3, B6...
+        
+        if (matchB) {
+            bookNum = parseInt(matchB[1]);
+        } else if (unit.startsWith('U')) {
+            bookNum = 5; // 舊資料 U1~U6 視為第五冊
+        }
 
-        div.innerHTML = `
-            <span class="range-name">${displayName}</span>
-            <span class="check-mark hidden" id="check-${unit}">✅</span>
-        `;
-        container.appendChild(div);
+        if (!books[bookNum]) books[bookNum] = [];
+        books[bookNum].push(unit);
+    });
+
+    // 依序產生 HTML
+    // 我們只顯示 1~6 冊和 Other
+    const order = [1, 2, 3, 4, 5, 6, 'Other'];
+
+    order.forEach(bookNum => {
+        const unitsInBook = books[bookNum];
+        if (unitsInBook && unitsInBook.length > 0) {
+            
+            // 1. 建立冊次區塊
+            const section = document.createElement('div');
+            section.className = 'book-section';
+
+            // 2. 建立標題
+            const title = document.createElement('div');
+            title.className = 'book-title';
+            title.textContent = (bookNum === 'Other') ? '其他範圍' : `Book ${bookNum}`;
+            section.appendChild(title);
+
+            // 3. 建立按鈕網格
+            const grid = document.createElement('div');
+            grid.className = 'unit-grid';
+
+            unitsInBook.forEach(unit => {
+                const div = document.createElement('div');
+                div.className = 'range-card'; 
+                div.id = 'btn-' + unit;
+                div.onclick = function() { toggleUnit(unit); };
+                
+                // 簡化按鈕文字：只顯示 Unit 號碼
+                // 例如 "B3U5" -> "Unit 5", "U1" -> "Unit 1"
+                let shortName = unit;
+                const matchU = unit.match(/U(\d+)/i);
+                if (matchU) {
+                    shortName = `Unit ${matchU[1]}`; // 變成 "Unit 1"
+                } else if (unit.includes('&')) {
+                     // 處理 B6U3&4 這種合併單元
+                     shortName = unit.replace(/B\d+/, '').replace('U', 'Unit ');
+                }
+
+                div.innerHTML = `
+                    <span>${shortName}</span>
+                    <span class="check-mark hidden" id="check-${unit}">✔</span>
+                `;
+                grid.appendChild(div);
+            });
+
+            section.appendChild(grid);
+            container.appendChild(section);
+        }
     });
 }
 
@@ -181,7 +221,14 @@ function updateRangeUI() {
             }
         }
     });
-    document.getElementById('range-warning').style.display = 'none';
+    
+    // 顯示或隱藏警告
+    const warningEl = document.getElementById('range-warning');
+    if (selectedUnits.length === 0) {
+        warningEl.style.display = 'block';
+    } else {
+        warningEl.style.display = 'none';
+    }
 }
 
 function updateCheckmarks() {
@@ -222,7 +269,6 @@ function startQuiz(mode) {
         return;
     }
 
-    // 1. 過濾資料
     let filteredData = vocabData.filter(item => selectedUnits.includes(item.unit));
 
     if (filteredData.length === 0) {
@@ -230,12 +276,8 @@ function startQuiz(mode) {
         return;
     }
 
-    // 2. 隨機打亂
     filteredData.sort(() => 0.5 - Math.random());
-
-    // 3. 取前 20 題
     questionList = filteredData.slice(0, 20);
-
     timeLimit = (mode === 'spelling') ? 15 : 10;
     
     document.getElementById('start-screen').classList.add('hidden');
@@ -275,11 +317,9 @@ function renderQuestion() {
         input.className = 'spelling-input';
         input.disabled = false;
         input.focus();
-        
         input.onkeydown = (e) => { 
             if(e.key === 'Enter' && !isProcessing) submitSpelling(); 
         };
-
     } else {
         currentQuestionMode = Math.random() < 0.5 ? 'en-zh' : 'zh-en';
         spellingEl.classList.add('hidden');
@@ -300,9 +340,7 @@ function renderQuestion() {
         let safetyCounter = 0;
         while (options.length < 4 && safetyCounter < 100) {
             const randomItem = vocabData[Math.floor(Math.random() * vocabData.length)];
-            if (!options.some(o => o.id === randomItem.id)) {
-                options.push(randomItem);
-            }
+            if (!options.some(o => o.id === randomItem.id)) options.push(randomItem);
             safetyCounter++;
         }
         options.sort(() => 0.5 - Math.random());
@@ -323,7 +361,6 @@ function startTimer() {
     clearInterval(timerInterval);
     timeRemaining = timeLimit;
     updateTimerVisuals();
-
     timerInterval = setInterval(() => {
         timeRemaining -= 0.1;
         updateTimerVisuals();
@@ -351,22 +388,18 @@ function checkAnswer(btnElement, selectedId, correctId) {
     clearInterval(timerInterval);
     isProcessing = true;
     const isCorrect = selectedId === correctId;
-    
     const allBtns = document.querySelectorAll('.btn-option');
     allBtns.forEach(b => b.disabled = true);
 
     if (isCorrect) {
         btnElement.classList.add('btn-correct');
-        if (currentQuestionMode === 'zh-en') {
-            speakText(questionList[currentIndex].en);
-        }
+        if (currentQuestionMode === 'zh-en') speakText(questionList[currentIndex].en);
     } else {
         btnElement.classList.add('btn-wrong');
         allBtns.forEach(b => {
             if(parseInt(b.dataset.id) === correctId) b.classList.add('btn-correct');
         });
     }
-
     showFeedback(isCorrect);
     recordAnswer(isCorrect);
     setTimeout(nextQuestion, 1200);
@@ -376,7 +409,6 @@ function submitSpelling() {
     if(isProcessing) return;
     clearInterval(timerInterval);
     isProcessing = true;
-
     const input = document.getElementById('spelling-input');
     const inputVal = input.value.trim();
     const correctVal = questionList[currentIndex].en;
@@ -390,7 +422,6 @@ function submitSpelling() {
         input.classList.add('wrong');
         input.value += ` (正確: ${correctVal})`;
     }
-
     showFeedback(isCorrect);
     recordAnswer(isCorrect);
     setTimeout(nextQuestion, 1500);
@@ -399,8 +430,7 @@ function submitSpelling() {
 function showFeedback(isCorrect) {
     const feedbackIcon = document.getElementById('feedback-icon');
     const comboBox = document.getElementById('combo-box');
-    
-    feedbackIcon.textContent = isCorrect ? '✅' : '❌';
+    feedbackIcon.textContent = isCorrect ? '✔' : '✘'; // 使用 Unicode 符號更簡潔
     feedbackIcon.style.color = isCorrect ? 'var(--success)' : 'var(--fail)';
     feedbackIcon.classList.add('feedback-show');
 
@@ -419,9 +449,7 @@ function showFeedback(isCorrect) {
 
 function resetFeedback() {
     document.getElementById('feedback-icon').classList.remove('feedback-show');
-    if(combo < 2) {
-        document.getElementById('combo-box').classList.remove('combo-active');
-    }
+    if(combo < 2) document.getElementById('combo-box').classList.remove('combo-active');
 }
 
 function recordAnswer(isCorrect) {
@@ -450,8 +478,7 @@ function finishQuiz() {
 
     const percentage = Math.round((score / questionList.length) * 100);
     
-    let rangeTitle = selectedUnits.join(" + ");
-    if (selectedUnits.length === ALL_UNITS.length) rangeTitle = "全範圍";
+    let rangeTitle = selectedUnits.length === ALL_UNITS.length ? "全範圍" : "自選範圍";
     
     document.getElementById('final-score-title').textContent = `${rangeTitle} 測驗結果`;
     document.getElementById('score-text').textContent = `得分：${percentage}% (${score} / ${questionList.length})`;
