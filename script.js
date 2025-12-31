@@ -3,6 +3,7 @@ let vocabData = [];
 let currentMode = ''; 
 let selectedUnits = [];
 let ALL_UNITS = [];
+let mistakeList = []; // 儲存錯題 ID
 
 let questionList = [];
 let currentIndex = 0;
@@ -15,6 +16,7 @@ let timerInterval;
 let timeLimit = 10;
 let timeRemaining = 10;
 let isProcessing = false;
+let ttsRate = 0.9; // 預設語速
 
 // 你的 Google Sheet CSV 連結
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTxd32azbren8Y1VTFYqd_NhzKI7hyVEV2RLYYu8XHGsuipC-SbDgJDGU-6ayIRWZpEmIobLjuKCec/pub?output=csv'; 
@@ -22,12 +24,15 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTxd32azbren
 window.onload = function() {
     // 檢查 PapaParse 是否載入
     if (typeof Papa === 'undefined') {
-        alert("嚴重錯誤：網頁缺少 PapaParse 元件。\n請檢查 index.html 是否有加入 <script src='...papaparse...'> 的程式碼。");
+        alert("嚴重錯誤：網頁缺少 PapaParse 元件。");
         document.getElementById('loading-text').textContent = "程式庫載入失敗";
         return;
     }
 
-    // 1. 先嘗試讀取快取
+    // 1. 載入使用者設定 (錯題、深色模式)
+    loadUserSettings();
+
+    // 2. 嘗試讀取快取
     const cachedData = localStorage.getItem('cachedVocabData');
     if (cachedData) {
         console.log("使用本機快取資料");
@@ -42,9 +47,37 @@ window.onload = function() {
         }
     }
 
-    // 2. 背景讀取最新資料
+    // 3. 背景讀取最新資料
     loadGoogleSheetData();
 };
+
+function loadUserSettings() {
+    // 讀取錯題列表
+    const savedMistakes = localStorage.getItem('mistakeList');
+    if (savedMistakes) {
+        mistakeList = JSON.parse(savedMistakes);
+    }
+    updateMistakeBtn();
+
+    // 讀取深色模式
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+    }
+
+    // 讀取語速 (可選，這裡先不存)
+}
+
+function updateMistakeBtn() {
+    const btn = document.getElementById('btn-mistake');
+    const countSpan = document.getElementById('mistake-count');
+    if (mistakeList.length > 0) {
+        btn.classList.remove('hidden');
+        countSpan.textContent = mistakeList.length;
+    } else {
+        btn.classList.add('hidden');
+    }
+}
 
 function loadGoogleSheetData() {
     Papa.parse(SHEET_URL, {
@@ -94,11 +127,9 @@ function processData(data) {
     // 取得所有單元
     const unitSet = new Set(vocabData.map(item => item.unit));
     ALL_UNITS = Array.from(unitSet).sort((a, b) => {
-        // 自然排序 (讓 B3 排在 B6 前面，U1 排在 U2 前面)
         return a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'});
     });
 
-    // 預設全選
     if (selectedUnits.length === 0) {
         selectedUnits = [...ALL_UNITS];
     } else {
@@ -116,45 +147,33 @@ function generateRangeButtons() {
     
     container.innerHTML = ''; 
 
-    // 定義分組容器
-    const books = {
-        1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 'Other': []
-    };
+    const books = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 'Other': [] };
 
-    // 將單元分配到對應的冊次
     ALL_UNITS.forEach(unit => {
         let bookNum = 'Other';
-        
-        const matchB = unit.match(/^B(\d+)/i); // 偵測 B3, B6...
-        
+        const matchB = unit.match(/^B(\d+)/i);
         if (matchB) {
             bookNum = parseInt(matchB[1]);
         } else if (unit.startsWith('U')) {
-            bookNum = 5; // 舊資料 U1~U6 視為第五冊
+            bookNum = 5;
         }
-
         if (!books[bookNum]) books[bookNum] = [];
         books[bookNum].push(unit);
     });
 
-    // 依序產生 HTML
     const order = [1, 2, 3, 4, 5, 6, 'Other'];
 
     order.forEach(bookNum => {
         const unitsInBook = books[bookNum];
         if (unitsInBook && unitsInBook.length > 0) {
-            
-            // 1. 建立冊次區塊
             const section = document.createElement('div');
             section.className = 'book-section';
 
-            // 2. 建立標題
             const title = document.createElement('div');
             title.className = 'book-title';
             title.textContent = (bookNum === 'Other') ? '其他範圍' : `Book ${bookNum}`;
             section.appendChild(title);
 
-            // 3. 建立按鈕網格
             const grid = document.createElement('div');
             grid.className = 'unit-grid';
 
@@ -164,14 +183,10 @@ function generateRangeButtons() {
                 div.id = 'btn-' + unit;
                 div.onclick = function() { toggleUnit(unit); };
                 
-                // --- 修正後的按鈕名稱邏輯 ---
                 let shortName = unit;
-                
                 if (unit.startsWith('B')) {
-                    // 如果是 B 開頭 (如 B6U3&4)，把 "B數字" 去掉，剩下的 "U..." 換成 "Unit ..."
                     shortName = unit.replace(/^B\d+/, '').replace('U', 'Unit ');
                 } else if (unit.startsWith('U')) {
-                    // 如果是 U 開頭 (如 U1)，直接把 "U" 換成 "Unit "
                     shortName = unit.replace('U', 'Unit ');
                 }
 
@@ -219,7 +234,6 @@ function updateRangeUI() {
         }
     });
     
-    // 顯示或隱藏警告
     const warningEl = document.getElementById('range-warning');
     if (selectedUnits.length === 0) {
         warningEl.style.display = 'block';
@@ -237,22 +251,43 @@ function updateCheckmarks() {
     });
 }
 
+// --- 新功能控制 ---
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+}
+
+function setSpeechSpeed(val) {
+    ttsRate = parseFloat(val);
+}
+
 function speakText(text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
-        utterance.rate = 0.9;
+        utterance.rate = ttsRate; // 使用設定的語速
         window.speechSynthesis.speak(utterance);
     }
 }
 
-function startQuiz(mode) {
-    if (selectedUnits.length === 0) {
-        document.getElementById('range-warning').style.display = 'block';
-        return;
-    }
+function goBackToHome() {
+    // 停止計時與語音
+    clearInterval(timerInterval);
+    window.speechSynthesis.cancel();
+    
+    // 切換畫面
+    document.getElementById('quiz-screen').classList.add('hidden');
+    document.getElementById('result-screen').classList.add('hidden');
+    document.getElementById('timer-container').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+    
+    // 更新錯題按鈕狀態
+    updateMistakeBtn();
+}
 
+function startQuiz(mode) {
     currentMode = mode;
     score = 0;
     currentIndex = 0;
@@ -266,7 +301,32 @@ function startQuiz(mode) {
         return;
     }
 
-    let filteredData = vocabData.filter(item => selectedUnits.includes(item.unit));
+    let filteredData = [];
+
+    // --- 錯題模式邏輯 ---
+    if (mode === 'mistake') {
+        if (mistakeList.length === 0) {
+            alert("目前沒有錯題紀錄！");
+            return;
+        }
+        // 從錯題 ID 找回單字資料
+        filteredData = vocabData.filter(item => mistakeList.includes(item.id));
+        if (filteredData.length === 0) {
+             // 防止 ID 對應不上的情況
+             mistakeList = [];
+             localStorage.setItem('mistakeList', JSON.stringify([]));
+             alert("錯題資料已過期，請重新測驗。");
+             updateMistakeBtn();
+             return;
+        }
+    } else {
+        // --- 一般模式邏輯 ---
+        if (selectedUnits.length === 0) {
+            document.getElementById('range-warning').style.display = 'block';
+            return;
+        }
+        filteredData = vocabData.filter(item => selectedUnits.includes(item.unit));
+    }
 
     if (filteredData.length === 0) {
         alert("所選範圍沒有單字資料！");
@@ -274,7 +334,14 @@ function startQuiz(mode) {
     }
 
     filteredData.sort(() => 0.5 - Math.random());
-    questionList = filteredData.slice(0, 20);
+    
+    // 如果是錯題模式，考全部錯題；一般模式最多 20 題
+    if (mode !== 'mistake') {
+        questionList = filteredData.slice(0, 20);
+    } else {
+        questionList = filteredData; 
+    }
+    
     timeLimit = (mode === 'spelling') ? 15 : 10;
     
     document.getElementById('start-screen').classList.add('hidden');
@@ -319,6 +386,9 @@ function renderQuestion() {
         };
     } else {
         currentQuestionMode = Math.random() < 0.5 ? 'en-zh' : 'zh-en';
+        // 錯題模式強制顯示中文考英文，增加難度 (可選)
+        // if (currentMode === 'mistake') currentQuestionMode = 'zh-en';
+
         spellingEl.classList.add('hidden');
         optionsEl.classList.remove('hidden');
         
@@ -427,7 +497,7 @@ function submitSpelling() {
 function showFeedback(isCorrect) {
     const feedbackIcon = document.getElementById('feedback-icon');
     const comboBox = document.getElementById('combo-box');
-    feedbackIcon.textContent = isCorrect ? '✔' : '✘'; // 使用 Unicode 符號更簡潔
+    feedbackIcon.textContent = isCorrect ? '✔' : '✘'; 
     feedbackIcon.style.color = isCorrect ? 'var(--success)' : 'var(--fail)';
     feedbackIcon.classList.add('feedback-show');
 
@@ -451,10 +521,31 @@ function resetFeedback() {
 
 function recordAnswer(isCorrect) {
     if (isCorrect) score++;
+    
+    const currentQ = questionList[currentIndex];
+    
     userAnswers.push({
-        question: questionList[currentIndex],
+        question: currentQ,
         isCorrect: isCorrect
     });
+
+    // --- 錯題處理邏輯 ---
+    if (!isCorrect) {
+        // 答錯：加入錯題列表 (如果還沒在裡面)
+        if (!mistakeList.includes(currentQ.id)) {
+            mistakeList.push(currentQ.id);
+        }
+    } else {
+        // 答對：如果在錯題模式下答對，則移除該錯題
+        if (currentMode === 'mistake') {
+            const idx = mistakeList.indexOf(currentQ.id);
+            if (idx > -1) {
+                mistakeList.splice(idx, 1);
+            }
+        }
+    }
+    // 儲存到 LocalStorage
+    localStorage.setItem('mistakeList', JSON.stringify(mistakeList));
 }
 
 function nextQuestion() {
@@ -475,7 +566,12 @@ function finishQuiz() {
 
     const percentage = Math.round((score / questionList.length) * 100);
     
-    let rangeTitle = selectedUnits.length === ALL_UNITS.length ? "全範圍" : "自選範圍";
+    let rangeTitle = "";
+    if (currentMode === 'mistake') {
+        rangeTitle = "錯題特訓";
+    } else {
+        rangeTitle = selectedUnits.length === ALL_UNITS.length ? "全範圍" : "自選範圍";
+    }
     
     document.getElementById('final-score-title').textContent = `${rangeTitle} 測驗結果`;
     document.getElementById('score-text').textContent = `得分：${percentage}% (${score} / ${questionList.length})`;
@@ -485,7 +581,7 @@ function finishQuiz() {
     
     if (percentage >= 80) {
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
-        if (selectedUnits.length === 1) {
+        if (currentMode !== 'mistake' && selectedUnits.length === 1) {
             localStorage.setItem('pass_' + selectedUnits[0], 'true');
         }
     } else {
