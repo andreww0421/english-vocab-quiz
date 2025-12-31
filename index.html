@@ -9,6 +9,20 @@
 <body>
 
 <div class="container" id="app">
+    <div class="top-bar">
+        <div class="setting-group">
+            <label for="speed-select">🔊 語速:</label>
+            <select id="speed-select" onchange="setSpeechSpeed(this.value)">
+                <option value="0.5">0.5x (慢)</option>
+                <option value="0.75">0.75x</option>
+                <option value="0.9" selected>0.9x (預設)</option>
+                <option value="1.0">1.0x (正常)</option>
+                <option value="1.25">1.25x (快)</option>
+            </select>
+        </div>
+        <button class="icon-btn" onclick="toggleDarkMode()" title="切換深色模式">🌙</button>
+    </div>
+
     <div class="progress-container">
         <div class="progress-bar" id="total-progress"></div>
     </div>
@@ -43,9 +57,17 @@
             <button class="btn" onclick="startQuiz('mixed')">🔊 開始測驗</button>
             <button class="btn btn-purple" onclick="startQuiz('spelling')">⌨️ 拼字挑戰</button>
         </div>
+        
+        <div style="margin-top: 10px;">
+            <button class="btn btn-red hidden" id="btn-mistake" onclick="startQuiz('mistake')">
+                🔥 錯題特訓 (<span id="mistake-count">0</span>)
+            </button>
+        </div>
     </div>
 
     <div id="quiz-screen" class="hidden">
+        <button class="back-btn" onclick="goBackToHome()">⬅ 回首頁</button>
+
         <div class="question-header">
             <span>題數: <span id="current-q">1</span> / <span id="total-q">20</span></span>
             <span id="timer-text" style="color:var(--fail); font-weight:bold;">10s</span>
@@ -65,7 +87,7 @@
         <p id="score-text"></p>
         <p id="max-combo-text" style="color: var(--combo); font-weight: bold;"></p>
         <div id="pass-fail-msg"></div>
-        <button class="btn" onclick="location.reload()">回首頁</button>
+        <button class="btn" onclick="goBackToHome()">回首頁</button>
         <div class="result-details" id="review-list"></div>
     </div>
 </div>
