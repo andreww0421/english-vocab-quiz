@@ -244,57 +244,81 @@ function speakText(text) {
     }
 }
 
-// === 音效產生器 (Web Audio API) ===
+// === ★★★ 音效系統核心更新 ★★★ ===
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
     if (!isSoundOn) return;
     if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    const osc = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    osc.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
     const now = audioCtx.currentTime;
 
     if (type === 'correct') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(500, now);
-        osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
-        gainNode.gain.setValueAtTime(0.3, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        osc.start(now);
-        osc.stop(now + 0.3);
+        // --- Combo 音效邏輯 ---
+        // 預測這次答對後的 combo數 (因為 playSound 在 combo++ 之前執行，所以要 +1)
+        let currentLevel = combo + 1;
+        if (currentLevel > 10) currentLevel = 10; // 上限鎖定在 10
+
+        // 定義一個 C 大調五聲音階 (聽起來比較和諧)
+        // C5, D5, E5, G5, A5, C6, D6, E6, G6, C7
+        const frequencies = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51, 1567.98, 2093.00];
+        
+        const freq = frequencies[currentLevel - 1];
+
+        if (currentLevel < 10) {
+            // Combo 1~9: 單音，音色隨 Combo 變亮
+            const oscType = currentLevel < 5 ? 'sine' : 'triangle'; // 前4下溫柔，後5下清脆
+            playNote(freq, now, 0.15, oscType);
+        } else {
+            // Combo 10 (Max): 激昂的和弦 (C Major Chord)
+            // 根音 + 大三度 + 純五度
+            playNote(freq, now, 0.4, 'triangle');       // C7
+            playNote(freq * 1.25, now, 0.4, 'triangle'); // E7
+            playNote(freq * 1.5, now, 0.4, 'triangle');  // G7
+        }
+
     } else if (type === 'wrong') {
+        // 錯誤音效：鋸齒波，音調下降
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(150, now);
         osc.frequency.linearRampToValueAtTime(100, now + 0.3);
-        gainNode.gain.setValueAtTime(0.3, now);
+        
+        gainNode.gain.setValueAtTime(0.2, now);
         gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + 0.3);
+
     } else if (type === 'pass') {
-        // 簡易勝利和弦
+        // 通過：勝利琶音
         playNote(523.25, now, 0.1, 'sine'); // C5
         playNote(659.25, now + 0.1, 0.1, 'sine'); // E5
         playNote(783.99, now + 0.2, 0.3, 'sine'); // G5
     } else if (type === 'fail') {
-        // 失敗音效
+        // 失敗：低沉雙音
         playNote(400, now, 0.2, 'triangle'); 
         playNote(300, now + 0.2, 0.4, 'triangle'); 
     }
 }
 
+// 播放單個音符的輔助函式
 function playNote(freq, time, duration, type='sine') {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = type;
     osc.frequency.value = freq;
+    
     osc.connect(gain);
     gain.connect(audioCtx.destination);
+    
+    // 音量包絡線 (Fade out)
     gain.gain.setValueAtTime(0.2, time);
     gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+    
     osc.start(time);
     osc.stop(time + duration);
 }
@@ -306,7 +330,7 @@ function goBackToHome() {
     window.speechSynthesis.cancel();
     document.getElementById('quiz-screen').classList.add('hidden');
     document.getElementById('flashcard-screen').classList.add('hidden');
-    document.getElementById('stats-screen').classList.add('hidden'); // 關閉統計
+    document.getElementById('stats-screen').classList.add('hidden'); 
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('timer-container').classList.add('hidden');
     document.getElementById('start-screen').classList.remove('hidden');
@@ -637,20 +661,17 @@ function handleFlashcardResult(known) {
     else { alert("恭喜！所有單字都複習完囉！"); goBackToHome(); }
 }
 
-// === 統計功能 (新增) ===
+// === 統計功能 ===
 function saveQuizResult(percentage) {
-    // 只記錄一般模式的成績，且要是多於 5 題的測驗
     if (currentMode === 'mistake' || questionList.length < 5) return;
     
     let history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
     const now = new Date();
-    // 儲存資料: 時間, 分數
     history.push({
         date: `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes() < 10 ? '0'+now.getMinutes() : now.getMinutes()}`,
         score: percentage
     });
     
-    // 只保留最近 50 筆
     if (history.length > 50) history = history.slice(history.length - 50);
     localStorage.setItem('quizHistory', JSON.stringify(history));
 }
@@ -662,9 +683,7 @@ function showStats() {
 }
 
 function renderCharts() {
-    // 1. 折線圖 (成績趨勢)
     const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
-    // 取最近 10 筆
     const recentHistory = history.slice(-10);
     
     const ctxScore = document.getElementById('scoreChart').getContext('2d');
@@ -689,8 +708,6 @@ function renderCharts() {
         }
     });
 
-    // 2. 圓餅圖 (範圍精通度)
-    // 計算有多少單元已通過 (pass_UNIT 為 true)
     let passedCount = 0;
     ALL_UNITS.forEach(u => {
         if (localStorage.getItem('pass_' + u) === 'true') passedCount++;
