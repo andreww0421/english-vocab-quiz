@@ -17,10 +17,15 @@ let timeLimit = 10;
 let timeRemaining = 10;
 let isProcessing = false;
 let ttsRate = 1.0; 
+let isSoundOn = true; // 音效開關
 
-// 單字卡模式變數
+// 單字卡變數
 let flashcardList = [];
 let fcIndex = 0;
+
+// Chart 實例
+let scoreChartInstance = null;
+let masteryChartInstance = null;
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTxd32azbren8Y1VTFYqd_NhzKI7hyVEV2RLYYu8XHGsuipC-SbDgJDGU-6ayIRWZpEmIobLjuKCec/pub?output=csv'; 
 
@@ -31,13 +36,9 @@ window.onload = function() {
         return;
     }
 
-    // 1. 載入設定
     loadUserSettings();
-
-    // 2. 鍵盤監聽
     setupKeyboardShortcuts();
 
-    // 3. 讀取資料
     const cachedData = localStorage.getItem('cachedVocabData');
     if (cachedData) {
         try {
@@ -53,37 +54,23 @@ window.onload = function() {
 
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
-        // 如果目前是隱藏的，就不動作 (避免首頁誤觸)
         if (currentMode === '') return;
-
-        // 1. 測驗模式 (Mixed)
         if (currentMode === 'mixed' && !document.getElementById('quiz-screen').classList.contains('hidden')) {
-            // 數字鍵 1-4
             if (['1', '2', '3', '4'].includes(e.key) && !isProcessing) {
                 const index = parseInt(e.key) - 1;
                 const btns = document.querySelectorAll('.btn-option');
                 if (btns[index]) btns[index].click();
             }
-            // Enter/Space: 下一題 (僅在顯示回饋時有效)
             if ((e.key === 'Enter' || e.key === ' ') && isProcessing) {
-                e.preventDefault(); // 防止 Space 捲動頁面
-                // 模擬等待時間結束，直接下一題 (需要修改 checkAnswer 裡的 setTimeout 邏輯，這裡簡化處理)
-                // 由於原始邏輯是用 setTimeout 自動跳，這裡可以不做動作，或者實作「按鍵加速跳轉」
-                // 為了簡單，我們這裡不做強制跳轉，依賴 setTimeout，
-                // 但如果是「拼字模式」，Enter 已經綁定在 input 上了。
+                e.preventDefault();
             }
         }
-
-        // 2. 單字卡模式
         if (currentMode === 'flashcard') {
-            if (e.key === ' ' || e.key === 'Spacebar') { // 空白鍵翻面
+            if (e.key === ' ' || e.key === 'Spacebar') {
                 e.preventDefault();
                 flipCard();
-            } else if (e.key === 'ArrowLeft') { // 左鍵：不會
-                handleFlashcardResult(false);
-            } else if (e.key === 'ArrowRight') { // 右鍵：會了
-                handleFlashcardResult(true);
-            }
+            } else if (e.key === 'ArrowLeft') handleFlashcardResult(false);
+            else if (e.key === 'ArrowRight') handleFlashcardResult(true);
         }
     });
 }
@@ -95,6 +82,12 @@ function loadUserSettings() {
 
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     if (isDarkMode) document.body.classList.add('dark-mode');
+
+    const soundSetting = localStorage.getItem('soundOn');
+    if (soundSetting !== null) {
+        isSoundOn = (soundSetting === 'true');
+    }
+    updateSoundBtn();
 }
 
 function updateMistakeBtn() {
@@ -122,14 +115,8 @@ function loadGoogleSheetData() {
                     ph: item.ph ? item.ph.trim() : "",
                     zh: item.zh.trim()
                 }));
-
-            if (newData.length === 0) {
-                if (vocabData.length === 0) document.getElementById('loading-text').textContent = "讀取失敗：資料庫為空";
-                return;
-            }
-
+            if (newData.length === 0) return;
             localStorage.setItem('cachedVocabData', JSON.stringify(newData));
-
             if (vocabData.length === 0 || JSON.stringify(vocabData) !== JSON.stringify(newData)) {
                 processData(newData);
                 document.getElementById('update-status').textContent = "資料庫已更新至最新版本！";
@@ -139,23 +126,16 @@ function loadGoogleSheetData() {
                 }, 3000);
             }
         },
-        error: function(err) {
-            console.error("下載失敗", err);
-            if (vocabData.length === 0) document.getElementById('loading-text').textContent = "網路連線失敗";
-        }
+        error: function(err) { console.error("下載失敗", err); }
     });
 }
 
 function processData(data) {
     vocabData = data;
     const unitSet = new Set(vocabData.map(item => item.unit));
-    ALL_UNITS = Array.from(unitSet).sort((a, b) => {
-        return a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'});
-    });
-
+    ALL_UNITS = Array.from(unitSet).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
     if (selectedUnits.length === 0) selectedUnits = [...ALL_UNITS];
     else selectedUnits = selectedUnits.filter(u => ALL_UNITS.includes(u));
-
     generateRangeButtons();
     updateCheckmarks();
     updateRangeUI();
@@ -165,9 +145,7 @@ function generateRangeButtons() {
     const container = document.getElementById('range-container');
     if (!container) return;
     container.innerHTML = ''; 
-
     const books = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 'Other': [] };
-
     ALL_UNITS.forEach(unit => {
         let bookNum = 'Other';
         const matchB = unit.match(/^B(\d+)/i);
@@ -176,10 +154,7 @@ function generateRangeButtons() {
         if (!books[bookNum]) books[bookNum] = [];
         books[bookNum].push(unit);
     });
-
-    const order = [1, 2, 3, 4, 5, 6, 'Other'];
-
-    order.forEach(bookNum => {
+    [1, 2, 3, 4, 5, 6, 'Other'].forEach(bookNum => {
         const unitsInBook = books[bookNum];
         if (unitsInBook && unitsInBook.length > 0) {
             const section = document.createElement('div');
@@ -190,7 +165,6 @@ function generateRangeButtons() {
             section.appendChild(title);
             const grid = document.createElement('div');
             grid.className = 'unit-grid';
-
             unitsInBook.forEach(unit => {
                 const div = document.createElement('div');
                 div.className = 'range-card'; 
@@ -199,7 +173,6 @@ function generateRangeButtons() {
                 let shortName = unit;
                 if (unit.startsWith('B')) shortName = unit.replace(/^B\d+/, '').replace('U', 'Unit ');
                 else if (unit.startsWith('U')) shortName = unit.replace('U', 'Unit ');
-
                 div.innerHTML = `<span>${shortName}</span><span class="check-mark hidden" id="check-${unit}">✔</span>`;
                 grid.appendChild(div);
             });
@@ -244,8 +217,19 @@ function updateCheckmarks() {
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDark);
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+}
+
+function toggleSound() {
+    isSoundOn = !isSoundOn;
+    localStorage.setItem('soundOn', isSoundOn);
+    updateSoundBtn();
+}
+
+function updateSoundBtn() {
+    const btn = document.getElementById('btn-sound');
+    btn.textContent = isSoundOn ? '🔊' : '🔇';
+    btn.style.opacity = isSoundOn ? '1' : '0.5';
 }
 
 function setSpeechSpeed(val) { ttsRate = parseFloat(val); }
@@ -260,15 +244,73 @@ function speakText(text) {
     }
 }
 
+// === 音效產生器 (Web Audio API) ===
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    if (!isSoundOn) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'correct') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } else if (type === 'wrong') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } else if (type === 'pass') {
+        // 簡易勝利和弦
+        playNote(523.25, now, 0.1, 'sine'); // C5
+        playNote(659.25, now + 0.1, 0.1, 'sine'); // E5
+        playNote(783.99, now + 0.2, 0.3, 'sine'); // G5
+    } else if (type === 'fail') {
+        // 失敗音效
+        playNote(400, now, 0.2, 'triangle'); 
+        playNote(300, now + 0.2, 0.4, 'triangle'); 
+    }
+}
+
+function playNote(freq, time, duration, type='sine') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0.2, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+    osc.start(time);
+    osc.stop(time + duration);
+}
+
+// ==============================
+
 function goBackToHome() {
     clearInterval(timerInterval);
     window.speechSynthesis.cancel();
     document.getElementById('quiz-screen').classList.add('hidden');
     document.getElementById('flashcard-screen').classList.add('hidden');
+    document.getElementById('stats-screen').classList.add('hidden'); // 關閉統計
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('timer-container').classList.add('hidden');
     document.getElementById('start-screen').classList.remove('hidden');
-    currentMode = ''; // 重置模式
+    currentMode = ''; 
     updateMistakeBtn();
 }
 
@@ -277,6 +319,8 @@ function startQuiz(mode) {
         document.getElementById('range-warning').style.display = 'block';
         return;
     }
+    // 啟動 AudioContext (需要使用者互動)
+    if (audioCtx.state === 'suspended') audioCtx.resume();
 
     currentMode = mode;
     score = 0;
@@ -286,10 +330,7 @@ function startQuiz(mode) {
     maxCombo = 0;
     isProcessing = false;
     
-    if (vocabData.length === 0) {
-        alert("資料庫尚未載入，請稍候...");
-        return;
-    }
+    if (vocabData.length === 0) { alert("資料庫尚未載入..."); return; }
 
     let filteredData = [];
     if (mode === 'mistake') {
@@ -407,6 +448,7 @@ function updateTimerVisuals() {
 
 function handleTimeOut() {
     if(isProcessing) return;
+    playSound('wrong'); // 音效
     showFeedback(false);
     recordAnswer(false);
     setTimeout(nextQuestion, 1500);
@@ -421,9 +463,11 @@ function checkAnswer(btnElement, selectedId, correctId) {
 
     if (isCorrect) {
         btnElement.classList.add('btn-correct');
+        playSound('correct'); // 音效
         if (currentQuestionMode === 'zh-en') speakText(questionList[currentIndex].en);
     } else {
         btnElement.classList.add('btn-wrong');
+        playSound('wrong'); // 音效
         allBtns.forEach(b => {
             if(parseInt(b.dataset.id) === correctId) b.classList.add('btn-correct');
         });
@@ -445,9 +489,11 @@ function submitSpelling() {
     input.disabled = true;
     if(isCorrect) {
         input.classList.add('correct');
+        playSound('correct');
         speakText(correctVal);
     } else {
         input.classList.add('wrong');
+        playSound('wrong');
         input.value += ` (正確: ${correctVal})`;
     }
     showFeedback(isCorrect);
@@ -510,6 +556,10 @@ function finishQuiz() {
     document.getElementById('combo-box').classList.remove('combo-active');
 
     const percentage = Math.round((score / questionList.length) * 100);
+    
+    // 儲存成績紀錄
+    saveQuizResult(percentage);
+
     let rangeTitle = "";
     if (currentMode === 'mistake') rangeTitle = "錯題特訓";
     else rangeTitle = selectedUnits.length === ALL_UNITS.length ? "全範圍" : "自選範圍";
@@ -520,11 +570,13 @@ function finishQuiz() {
 
     const msgDiv = document.getElementById('pass-fail-msg');
     if (percentage >= 80) {
+        playSound('pass'); // 音效
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
         if (currentMode !== 'mistake' && selectedUnits.length === 1) {
             localStorage.setItem('pass_' + selectedUnits[0], 'true');
         }
     } else {
+        playSound('fail'); // 音效
         msgDiv.innerHTML = '<span class="result-fail">再接再厲！ (Fail)</span>';
     }
 
@@ -543,58 +595,33 @@ function finishQuiz() {
     }
 }
 
-// === 單字卡模式邏輯 (新增) ===
+// === 單字卡模式 ===
 function startFlashcardMode() {
-    if (selectedUnits.length === 0) {
-        document.getElementById('range-warning').style.display = 'block';
-        return;
-    }
-    
-    if (vocabData.length === 0) {
-        alert("資料庫尚未載入...");
-        return;
-    }
-
+    if (selectedUnits.length === 0) { document.getElementById('range-warning').style.display = 'block'; return; }
+    if (vocabData.length === 0) { alert("資料庫尚未載入..."); return; }
     currentMode = 'flashcard';
-    
-    // 過濾並隨機排序單字
     let filteredData = vocabData.filter(item => selectedUnits.includes(item.unit));
-    if (filteredData.length === 0) {
-        alert("所選範圍沒有單字資料！");
-        return;
-    }
+    if (filteredData.length === 0) { alert("所選範圍沒有單字資料！"); return; }
     flashcardList = filteredData.sort(() => 0.5 - Math.random());
     fcIndex = 0;
-
-    // 介面切換
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('flashcard-screen').classList.remove('hidden');
-    
     renderFlashcard();
 }
 
 function renderFlashcard() {
     const card = document.getElementById('flashcard');
-    card.classList.remove('flipped'); // 每次切換先翻回正面
-    
+    card.classList.remove('flipped'); 
     const currentWord = flashcardList[fcIndex];
     document.getElementById('fc-remaining').textContent = flashcardList.length - fcIndex;
-    
-    // 更新內容
     document.getElementById('fc-front-text').textContent = currentWord.en;
     document.getElementById('fc-back-zh').textContent = currentWord.zh;
     document.getElementById('fc-back-ph').textContent = currentWord.ph;
-    
-    // 自動播放發音 (可選)
-    // speakText(currentWord.en); 
 }
 
 function flipCard() {
     document.getElementById('flashcard').classList.toggle('flipped');
-    // 如果翻到背面，自動發音
-    if (document.getElementById('flashcard').classList.contains('flipped')) {
-        playCurrentWordAudio();
-    }
+    if (document.getElementById('flashcard').classList.contains('flipped')) playCurrentWordAudio();
 }
 
 function playCurrentWordAudio() {
@@ -604,19 +631,87 @@ function playCurrentWordAudio() {
 
 function handleFlashcardResult(known) {
     const currentWord = flashcardList[fcIndex];
-    
-    if (!known) {
-        // 如果還不熟，把這張卡片移到最後面，稍後再測一次
-        flashcardList.push(currentWord);
-    }
-    
+    if (!known) flashcardList.push(currentWord);
     fcIndex++;
+    if (fcIndex < flashcardList.length) setTimeout(renderFlashcard, 200);
+    else { alert("恭喜！所有單字都複習完囉！"); goBackToHome(); }
+}
+
+// === 統計功能 (新增) ===
+function saveQuizResult(percentage) {
+    // 只記錄一般模式的成績，且要是多於 5 題的測驗
+    if (currentMode === 'mistake' || questionList.length < 5) return;
     
-    if (fcIndex < flashcardList.length) {
-        // 延遲一下讓翻轉動畫順暢
-        setTimeout(renderFlashcard, 200);
-    } else {
-        alert("恭喜！所有單字都複習完囉！");
-        goBackToHome();
-    }
+    let history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
+    const now = new Date();
+    // 儲存資料: 時間, 分數
+    history.push({
+        date: `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes() < 10 ? '0'+now.getMinutes() : now.getMinutes()}`,
+        score: percentage
+    });
+    
+    // 只保留最近 50 筆
+    if (history.length > 50) history = history.slice(history.length - 50);
+    localStorage.setItem('quizHistory', JSON.stringify(history));
+}
+
+function showStats() {
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('stats-screen').classList.remove('hidden');
+    renderCharts();
+}
+
+function renderCharts() {
+    // 1. 折線圖 (成績趨勢)
+    const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
+    // 取最近 10 筆
+    const recentHistory = history.slice(-10);
+    
+    const ctxScore = document.getElementById('scoreChart').getContext('2d');
+    if (scoreChartInstance) scoreChartInstance.destroy();
+    
+    scoreChartInstance = new Chart(ctxScore, {
+        type: 'line',
+        data: {
+            labels: recentHistory.map(h => h.date),
+            datasets: [{
+                label: '測驗分數',
+                data: recentHistory.map(h => h.score),
+                borderColor: '#4a90e2',
+                backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, max: 100 } }
+        }
+    });
+
+    // 2. 圓餅圖 (範圍精通度)
+    // 計算有多少單元已通過 (pass_UNIT 為 true)
+    let passedCount = 0;
+    ALL_UNITS.forEach(u => {
+        if (localStorage.getItem('pass_' + u) === 'true') passedCount++;
+    });
+    const totalCount = ALL_UNITS.length;
+    const notPassed = totalCount - passedCount;
+
+    document.getElementById('mastery-text').textContent = `已精通 ${passedCount} / ${totalCount} 個單元 (${Math.round(passedCount/totalCount*100 || 0)}%)`;
+
+    const ctxMastery = document.getElementById('masteryChart').getContext('2d');
+    if (masteryChartInstance) masteryChartInstance.destroy();
+
+    masteryChartInstance = new Chart(ctxMastery, {
+        type: 'doughnut',
+        data: {
+            labels: ['已通過', '未完成'],
+            datasets: [{
+                data: [passedCount, notPassed],
+                backgroundColor: ['#2ecc71', '#ecf0f1']
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 }
