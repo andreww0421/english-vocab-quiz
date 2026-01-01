@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>國中英語單字測驗</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -19,6 +20,7 @@
                 <option value="1.5">1.5x (特快)</option>
             </select>
         </div>
+        <button class="icon-btn" onclick="toggleSound()" id="btn-sound" title="切換音效">🔊</button>
         <button class="icon-btn" onclick="toggleDarkMode()" title="切換深色模式">🌙</button>
     </div>
 
@@ -41,14 +43,11 @@
 
         <div class="range-selector">
             <h3>請選擇單字範圍 (可多選)：</h3>
-            
             <div class="range-options" id="range-container">
                 <p id="loading-text" style="color:#666;">正在讀取單字庫...</p>
             </div>
-
             <button class="btn-small" onclick="toggleAllUnits()">全選 / 清除</button>
             <p id="range-warning" style="color:red; font-size:0.9rem; display:none;">請至少選擇一個單元！</p>
-            
             <p id="update-status" style="color: green; font-size: 0.8rem; margin-top: 5px; height: 1.2em;"></p>
         </div>
 
@@ -57,8 +56,9 @@
             <button class="btn btn-purple" onclick="startQuiz('spelling')">⌨️ 拼字挑戰</button>
             <button class="btn btn-green" onclick="startFlashcardMode()">📖 單字卡複習</button>
         </div>
-        
-        <div style="margin-top: 10px;">
+
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px;">
+            <button class="btn-small" style="background-color: #34495e;" onclick="showStats()">📊 學習統計</button>
             <button class="btn btn-red hidden" id="btn-mistake" onclick="startQuiz('mistake')">
                 🔥 錯題特訓 (<span id="mistake-count">0</span>)
             </button>
@@ -109,6 +109,24 @@
         <div class="flashcard-controls">
             <button class="btn btn-fail" onclick="handleFlashcardResult(false)">❌ 還不熟 (←)</button>
             <button class="btn btn-success" onclick="handleFlashcardResult(true)">✅ 我會了 (→)</button>
+        </div>
+    </div>
+
+    <div id="stats-screen" class="hidden">
+        <button class="back-btn" onclick="goBackToHome()">⬅ 回首頁</button>
+        <h2>📊 學習分析</h2>
+        
+        <div class="chart-container">
+            <h3>📈 成績趨勢 (最近10次)</h3>
+            <canvas id="scoreChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h3>🏆 範圍精通度</h3>
+            <div style="height: 200px; display: flex; justify-content: center;">
+                <canvas id="masteryChart"></canvas>
+            </div>
+            <p id="mastery-text" style="font-size: 0.9rem; margin-top: 10px; color: var(--sub-text);"></p>
         </div>
     </div>
 
