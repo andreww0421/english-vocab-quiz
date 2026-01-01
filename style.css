@@ -190,6 +190,7 @@ h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; }
     box-shadow: 0 2px 5px rgba(74, 144, 226, 0.2);
 }
 
+/* 通過標記 */
 .check-mark {
     position: absolute;
     top: -6px;
@@ -201,6 +202,21 @@ h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; }
     padding: 1px;
     line-height: 1;
     color: var(--success);
+}
+
+/* 完美通關 (100%) 的樣式 */
+.check-mark.perfect {
+    background-color: #fff;
+    color: #f1c40f;              /* 金色文字 */
+    border: 1px solid #f1c40f;   /* 金色邊框 */
+    box-shadow: 0 0 8px rgba(241, 196, 15, 0.5); /* 金色發光效果 */
+    z-index: 2;
+    font-size: 0.9rem;
+}
+body.dark-mode .check-mark.perfect {
+    background-color: #444;
+    color: #f1c40f;
+    border-color: #f1c40f;
 }
 
 .action-buttons { margin-top: 20px; }
@@ -358,7 +374,7 @@ body.dark-mode .flashcard .back {
     margin-top: 20px;
 }
 
-/* === 統計畫面樣式 (新增) === */
+/* === 統計畫面樣式 === */
 .chart-container {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
