@@ -341,7 +341,7 @@ function goBackToHome() {
     currentMode = ''; 
     updateMistakeBtn();
     
-    // ★★★ 關鍵修正：回到首頁時，強制刷新一次圖示 ★★★
+    // ★★★ 確保回到首頁時，重新檢查所有勾勾與皇冠 ★★★
     updateCheckmarks();
 }
 
@@ -605,6 +605,7 @@ function finishQuiz() {
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
         
         // ★★★ 判斷 100% 完美通關 ★★★
+        // 只有當「只選擇了一個單元」時，才紀錄該單元的通過狀態
         if (currentMode !== 'mistake' && selectedUnits.length === 1) {
             const unitName = selectedUnits[0];
             localStorage.setItem('pass_' + unitName, 'true'); // 80% 通過
