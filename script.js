@@ -340,6 +340,9 @@ function goBackToHome() {
     document.getElementById('start-screen').classList.remove('hidden');
     currentMode = ''; 
     updateMistakeBtn();
+    
+    // ★★★ 關鍵修正：回到首頁時，強制刷新一次圖示 ★★★
+    updateCheckmarks();
 }
 
 function startQuiz(mode) {
