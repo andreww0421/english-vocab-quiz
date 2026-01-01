@@ -53,8 +53,9 @@
         </div>
 
         <div class="action-buttons">
-            <button class="btn" onclick="startQuiz('mixed')">🔊 開始測驗</button>
+            <button class="btn" onclick="startQuiz('mixed')">🔊 選擇題測驗</button>
             <button class="btn btn-purple" onclick="startQuiz('spelling')">⌨️ 拼字挑戰</button>
+            <button class="btn btn-green" onclick="startFlashcardMode()">📖 單字卡複習</button>
         </div>
         
         <div style="margin-top: 10px;">
@@ -62,6 +63,10 @@
                 🔥 錯題特訓 (<span id="mistake-count">0</span>)
             </button>
         </div>
+        
+        <p style="margin-top:15px; font-size:0.8rem; color:#888;">
+            💡 電腦版支援鍵盤操作：1-4 作答、Enter 下一題、Space 翻卡
+        </p>
     </div>
 
     <div id="quiz-screen" class="hidden">
@@ -77,6 +82,33 @@
         <div id="spelling-container" class="input-group hidden">
             <input type="text" id="spelling-input" class="spelling-input" placeholder="輸入英文單字..." autocomplete="off">
             <button class="btn" onclick="submitSpelling()">送出</button>
+        </div>
+    </div>
+
+    <div id="flashcard-screen" class="hidden">
+        <button class="back-btn" onclick="goBackToHome()">⬅ 結束複習</button>
+        
+        <div class="flashcard-header">
+            <span>剩餘卡片: <span id="fc-remaining">0</span></span>
+        </div>
+
+        <div class="flashcard-container" onclick="flipCard()">
+            <div class="flashcard" id="flashcard">
+                <div class="front">
+                    <div class="fc-word" id="fc-front-text">Word</div>
+                    <div class="fc-hint">點擊翻面 (Space)</div>
+                </div>
+                <div class="back">
+                    <div class="fc-def" id="fc-back-zh">中文定義</div>
+                    <div class="fc-ph" id="fc-back-ph">/yin-biao/</div>
+                    <button class="btn-audio-circle" onclick="event.stopPropagation(); playCurrentWordAudio()">🔊</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flashcard-controls">
+            <button class="btn btn-fail" onclick="handleFlashcardResult(false)">❌ 還不熟 (←)</button>
+            <button class="btn btn-success" onclick="handleFlashcardResult(true)">✅ 我會了 (→)</button>
         </div>
     </div>
 
