@@ -208,9 +208,23 @@ function updateRangeUI() {
 
 function updateCheckmarks() {
     ALL_UNITS.forEach(r => {
-        if (localStorage.getItem('pass_' + r) === 'true') {
-            const check = document.getElementById('check-' + r);
-            if(check) check.classList.remove('hidden');
+        const checkEl = document.getElementById('check-' + r);
+        if (checkEl) {
+            checkEl.classList.add('hidden');
+            checkEl.classList.remove('perfect');
+            checkEl.textContent = '✔';
+
+            // 1. 檢查 100% 完美通關
+            if (localStorage.getItem('perfect_' + r) === 'true') {
+                checkEl.textContent = '👑';
+                checkEl.classList.add('perfect');
+                checkEl.classList.remove('hidden');
+            } 
+            // 2. 檢查 80% 通過
+            else if (localStorage.getItem('pass_' + r) === 'true') {
+                checkEl.textContent = '✔';
+                checkEl.classList.remove('hidden');
+            }
         }
     });
 }
@@ -244,7 +258,7 @@ function speakText(text) {
     }
 }
 
-// === ★★★ 音效系統核心更新 ★★★ ===
+// === ★★★ 音效系統 (C大調爬升) ★★★ ===
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
@@ -254,31 +268,25 @@ function playSound(type) {
     const now = audioCtx.currentTime;
 
     if (type === 'correct') {
-        // --- Combo 音效邏輯 ---
-        // 預測這次答對後的 combo數 (因為 playSound 在 combo++ 之前執行，所以要 +1)
         let currentLevel = combo + 1;
-        if (currentLevel > 10) currentLevel = 10; // 上限鎖定在 10
+        if (currentLevel > 10) currentLevel = 10; 
 
-        // 定義一個 C 大調五聲音階 (聽起來比較和諧)
-        // C5, D5, E5, G5, A5, C6, D6, E6, G6, C7
+        // C大調音階: C5, D5, E5, G5, A5, C6, D6, E6, G6, C7
         const frequencies = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51, 1567.98, 2093.00];
-        
         const freq = frequencies[currentLevel - 1];
 
         if (currentLevel < 10) {
-            // Combo 1~9: 單音，音色隨 Combo 變亮
-            const oscType = currentLevel < 5 ? 'sine' : 'triangle'; // 前4下溫柔，後5下清脆
+            // 單音爬升
+            const oscType = currentLevel < 5 ? 'sine' : 'triangle'; 
             playNote(freq, now, 0.15, oscType);
         } else {
-            // Combo 10 (Max): 激昂的和弦 (C Major Chord)
-            // 根音 + 大三度 + 純五度
+            // Combo 10+: 激昂和弦 (C Major Chord)
             playNote(freq, now, 0.4, 'triangle');       // C7
             playNote(freq * 1.25, now, 0.4, 'triangle'); // E7
             playNote(freq * 1.5, now, 0.4, 'triangle');  // G7
         }
 
     } else if (type === 'wrong') {
-        // 錯誤音效：鋸齒波，音調下降
         const osc = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         osc.type = 'sawtooth';
@@ -294,18 +302,15 @@ function playSound(type) {
         osc.stop(now + 0.3);
 
     } else if (type === 'pass') {
-        // 通過：勝利琶音
         playNote(523.25, now, 0.1, 'sine'); // C5
         playNote(659.25, now + 0.1, 0.1, 'sine'); // E5
         playNote(783.99, now + 0.2, 0.3, 'sine'); // G5
     } else if (type === 'fail') {
-        // 失敗：低沉雙音
         playNote(400, now, 0.2, 'triangle'); 
         playNote(300, now + 0.2, 0.4, 'triangle'); 
     }
 }
 
-// 播放單個音符的輔助函式
 function playNote(freq, time, duration, type='sine') {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -315,7 +320,6 @@ function playNote(freq, time, duration, type='sine') {
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     
-    // 音量包絡線 (Fade out)
     gain.gain.setValueAtTime(0.2, time);
     gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
     
@@ -343,7 +347,6 @@ function startQuiz(mode) {
         document.getElementById('range-warning').style.display = 'block';
         return;
     }
-    // 啟動 AudioContext (需要使用者互動)
     if (audioCtx.state === 'suspended') audioCtx.resume();
 
     currentMode = mode;
@@ -472,7 +475,7 @@ function updateTimerVisuals() {
 
 function handleTimeOut() {
     if(isProcessing) return;
-    playSound('wrong'); // 音效
+    playSound('wrong'); 
     showFeedback(false);
     recordAnswer(false);
     setTimeout(nextQuestion, 1500);
@@ -487,11 +490,11 @@ function checkAnswer(btnElement, selectedId, correctId) {
 
     if (isCorrect) {
         btnElement.classList.add('btn-correct');
-        playSound('correct'); // 音效
+        playSound('correct'); 
         if (currentQuestionMode === 'zh-en') speakText(questionList[currentIndex].en);
     } else {
         btnElement.classList.add('btn-wrong');
-        playSound('wrong'); // 音效
+        playSound('wrong'); 
         allBtns.forEach(b => {
             if(parseInt(b.dataset.id) === correctId) b.classList.add('btn-correct');
         });
@@ -593,14 +596,22 @@ function finishQuiz() {
     document.getElementById('max-combo-text').textContent = `🔥 最高連擊 (Max Combo): ${maxCombo}`;
 
     const msgDiv = document.getElementById('pass-fail-msg');
+    
     if (percentage >= 80) {
-        playSound('pass'); // 音效
+        playSound('pass'); 
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
+        
+        // ★★★ 判斷 100% 完美通關 ★★★
         if (currentMode !== 'mistake' && selectedUnits.length === 1) {
-            localStorage.setItem('pass_' + selectedUnits[0], 'true');
+            const unitName = selectedUnits[0];
+            localStorage.setItem('pass_' + unitName, 'true'); // 80% 通過
+            if (percentage === 100) {
+                localStorage.setItem('perfect_' + unitName, 'true'); // 100% 完美
+                msgDiv.innerHTML += '<br><span style="color:#f1c40f; font-size:1.2rem;">👑 完美全對！太強了！ 👑</span>';
+            }
         }
     } else {
-        playSound('fail'); // 音效
+        playSound('fail'); 
         msgDiv.innerHTML = '<span class="result-fail">再接再厲！ (Fail)</span>';
     }
 
