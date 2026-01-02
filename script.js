@@ -140,7 +140,6 @@ function processData(data) {
     updateRangeUI();
 }
 
-// ★★★ 更新：生成帶有兩個標記的按鈕 ★★★
 function generateRangeButtons() {
     const container = document.getElementById('range-container');
     if (!container) return;
@@ -216,20 +215,16 @@ function updateRangeUI() {
     warningEl.style.display = (selectedUnits.length === 0) ? 'block' : 'none';
 }
 
-// ★★★ 更新：檢查並顯示 Mixed 和 Spelling 的狀態 ★★★
 function updateCheckmarks() {
     ALL_UNITS.forEach(unit => {
-        // 1. 處理 Mixed (選擇題) - 右上
+        // 1. Mixed (選擇題) - 右上
         const checkMixed = document.getElementById('check-mixed-' + unit);
         if (checkMixed) {
-            checkMixed.className = 'check-mark pos-mixed hidden'; // 重置
+            checkMixed.className = 'check-mark pos-mixed hidden'; 
             checkMixed.textContent = '✔';
 
-            // 檢查是否是舊資料 (相容性：如果是舊的 pass_U1，視為 Mixed 通過)
             const isOldPass = localStorage.getItem('pass_' + unit) === 'true';
             const isOldPerfect = localStorage.getItem('perfect_' + unit) === 'true';
-            
-            // 讀取新資料
             const isMixedPass = localStorage.getItem('pass_mixed_' + unit) === 'true';
             const isMixedPerfect = localStorage.getItem('perfect_mixed_' + unit) === 'true';
 
@@ -243,10 +238,10 @@ function updateCheckmarks() {
             }
         }
 
-        // 2. 處理 Spelling (拼字) - 左上
+        // 2. Spelling (拼字) - 左上
         const checkSpell = document.getElementById('check-spell-' + unit);
         if (checkSpell) {
-            checkSpell.className = 'check-mark pos-spell hidden'; // 重置
+            checkSpell.className = 'check-mark pos-spell hidden'; 
             checkSpell.textContent = '✔';
 
             const isSpellPass = localStorage.getItem('pass_spell_' + unit) === 'true';
@@ -267,6 +262,7 @@ function updateCheckmarks() {
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    // 如果選單打開，切換模式後可能需要關閉選單，這裡選擇保持開啟
 }
 
 function toggleSound() {
@@ -625,7 +621,7 @@ function finishQuiz() {
         playSound('pass'); 
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
         
-        // ★★★ 更新：區分 Mixed 和 Spelling 紀錄 ★★★
+        // 區分 Mixed 和 Spelling 紀錄
         if (currentMode !== 'mistake' && selectedUnits.length === 1) {
             const unitName = selectedUnits[0];
             const type = (currentMode === 'spelling') ? 'spell_' : 'mixed_';
@@ -637,6 +633,9 @@ function finishQuiz() {
             if (percentage === 100) {
                 localStorage.setItem('perfect_' + type + unitName, 'true');
                 msgDiv.innerHTML += '<br><span style="color:#f1c40f; font-size:1.2rem;">👑 完美全對！太強了！ 👑</span>';
+                
+                // ★★★ 觸發彩帶特效 ★★★
+                fireConfetti();
             }
         }
     } else {
@@ -771,4 +770,73 @@ function renderCharts() {
         },
         options: { responsive: true, maintainAspectRatio: false }
     });
+}
+
+// === ★★★ 新功能：資料備份與還原 ★★★ ===
+
+function exportData() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('pass_') || key.startsWith('perfect_') || key === 'mistakeList' || key === 'quizHistory' || key === 'soundOn' || key === 'darkMode') {
+            data[key] = localStorage.getItem(key);
+        }
+    }
+    
+    const jsonStr = JSON.stringify(data);
+    const encodedStr = btoa(unescape(encodeURIComponent(jsonStr))); 
+    
+    navigator.clipboard.writeText(encodedStr).then(() => {
+        alert("✅ 進度代碼已複製！\n請將此代碼傳送到另一台裝置，並使用「匯入進度」功能。");
+    }).catch(err => {
+        console.error('複製失敗', err);
+        prompt("請手動複製以下代碼：", encodedStr);
+    });
+}
+
+function importData() {
+    const input = prompt("請貼上您的進度代碼：");
+    if (!input) return;
+
+    try {
+        const jsonStr = decodeURIComponent(escape(atob(input)));
+        const data = JSON.parse(jsonStr);
+
+        if (confirm("⚠️ 警告：這將會覆蓋您目前的進度紀錄，確定要匯入嗎？")) {
+            for (const key in data) {
+                localStorage.setItem(key, data[key]);
+            }
+            alert("🎉 匯入成功！頁面將重新整理。");
+            location.reload();
+        }
+    } catch (e) {
+        alert("❌ 代碼格式錯誤，請確認是否複製完整。");
+        console.error(e);
+    }
+}
+
+// === ★★★ 新功能：彩帶特效 ★★★ ===
+function fireConfetti() {
+    // 發射左邊
+    confetti({
+        origin: { x: 0.1, y: 0.8 },
+        angle: 60,
+        spread: 60,
+        particleCount: 100,
+        colors: ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71']
+    });
+    // 發射右邊
+    confetti({
+        origin: { x: 0.9, y: 0.8 },
+        angle: 120,
+        spread: 60,
+        particleCount: 100,
+        colors: ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71']
+    });
+}
+
+// === ★★★ 新功能：懸浮選單開關 ★★★ ===
+function toggleFabMenu() {
+    const menu = document.getElementById('fab-menu');
+    menu.classList.toggle('hidden');
 }
