@@ -137,7 +137,7 @@ h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; }
 }
 .btn-small:hover { background-color: #7f8c8d; }
 
-/* --- 範圍選擇區 (Unit Cards) --- */
+/* --- 範圍選擇區 --- */
 .range-selector { margin: 10px 0; text-align: left; }
 .range-selector h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; text-align: center; }
 
@@ -159,8 +159,8 @@ h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; }
 
 .unit-grid { 
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* 稍微加寬一點以容納兩個標記 */
-    gap: 12px; 
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px; 
 }
 
 .range-card {
@@ -169,7 +169,7 @@ h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; }
     padding: 8px 5px;
     cursor: pointer;
     transition: all 0.2s;
-    position: relative; /* 重要：給勾勾定位用 */
+    position: relative;
     background: var(--card-bg);
     user-select: none;
     display: flex;
@@ -190,9 +190,7 @@ h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; }
     box-shadow: 0 2px 5px rgba(74, 144, 226, 0.2);
 }
 
-/* === 單元卡片上的成就標記 (Check Marks) === */
-
-/* 基礎樣式 */
+/* --- 單元卡片上的成就標記 --- */
 .check-mark {
     position: absolute;
     background: white;
@@ -209,57 +207,30 @@ h3 { color: var(--sub-text); font-size: 1rem; margin-bottom: 10px; }
     z-index: 2;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
-/* 深色模式下的基礎標記 */
 body.dark-mode .check-mark {
     background: #444;
     box-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
-/* 1. 選擇題 (Mixed) - 右上角 */
-.check-mark.pos-mixed {
-    top: -8px;
-    right: -8px;
-    color: var(--success); /* 綠色 */
-    border: 1px solid var(--success);
-}
+/* 位置區分 */
+.check-mark.pos-mixed { top: -8px; right: -8px; color: var(--success); border: 1px solid var(--success); }
+.check-mark.pos-spell { top: -8px; left: -8px; color: #3498db; border: 1px solid #3498db; }
 
-/* 2. 拼字題 (Spelling) - 左上角 */
-.check-mark.pos-spell {
-    top: -8px;
-    left: -8px;
-    color: #3498db; /* 藍色 */
-    border: 1px solid #3498db;
-}
-
-/* === 完美通關 (100%) 特效 === */
-
-/* 選擇題完美 (皇冠) */
+/* 完美通關特效 */
 .check-mark.perfect-mixed {
-    background-color: #fff9c4;   /* 淡黃底 */
-    color: #f1c40f;              /* 金色圖示 */
-    border: 1px solid #f1c40f;
-    box-shadow: 0 0 8px rgba(241, 196, 15, 0.6); /* 金色發光 */
-    transform: scale(1.2);       /* 稍微放大 */
+    background-color: #fff9c4; color: #f1c40f; border: 1px solid #f1c40f;
+    box-shadow: 0 0 8px rgba(241, 196, 15, 0.6); transform: scale(1.2);
 }
-
-/* 拼字題完美 (鑽石) */
 .check-mark.perfect-spell {
-    background-color: #e0f7fa;   /* 淡藍底 */
-    color: #00bcd4;              /* 青色圖示 */
-    border: 1px solid #00bcd4;
-    box-shadow: 0 0 8px rgba(0, 188, 212, 0.6); /* 青色發光 */
-    transform: scale(1.2);
+    background-color: #e0f7fa; color: #00bcd4; border: 1px solid #00bcd4;
+    box-shadow: 0 0 8px rgba(0, 188, 212, 0.6); transform: scale(1.2);
 }
-
-/* 深色模式下的完美特效調整 */
 body.dark-mode .check-mark.perfect-mixed { background-color: #433; }
 body.dark-mode .check-mark.perfect-spell { background-color: #234; }
 
-
-/* --- 遊戲介面 (Quiz UI) --- */
 .action-buttons { margin-top: 20px; }
 
+/* --- 遊戲介面 --- */
 .progress-container {
     position: absolute; top: 0; left: 0; width: 100%; height: 6px; background-color: #eee; z-index: 10;
 }
@@ -332,7 +303,7 @@ body.dark-mode .check-mark.perfect-spell { background-color: #234; }
 .review-item.wrong { color: var(--fail); }
 .review-audio { cursor: pointer; color: var(--primary); font-size: 1.2rem; }
 
-/* === 單字卡模式樣式 (Flashcard) === */
+/* === 單字卡模式樣式 === */
 .flashcard-header {
     margin-top: 35px;
     text-align: right;
@@ -412,11 +383,89 @@ body.dark-mode .flashcard .back {
     margin-top: 20px;
 }
 
-/* === 統計畫面樣式 (Stats) === */
+/* === 統計畫面樣式 === */
 .chart-container {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 20px;
+}
+
+/* === 右下角懸浮選單 (FAB) 樣式 === */
+.fab-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column-reverse; /* 讓選單往上展開 */
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.fab-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.3s, background 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.fab-btn:hover {
+    transform: scale(1.1) rotate(90deg);
+    background-color: #357abd;
+}
+
+.fab-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: opacity 0.3s, transform 0.3s;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.fab-menu.hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none; /* 隱藏時不可點擊 */
+}
+
+.fab-item {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: white;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    font-size: 1.2rem;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body.dark-mode .fab-item {
+    background-color: #444;
+    color: white;
+    border-color: #666;
+}
+
+.fab-item:hover {
+    transform: scale(1.1);
+    background-color: #f0f0f0;
+}
+body.dark-mode .fab-item:hover {
+    background-color: #555;
 }
