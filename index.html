@@ -143,9 +143,10 @@
 
 <div class="fab-container">
     <div class="fab-menu hidden" id="fab-menu">
-        <button class="fab-item" onclick="toggleDarkMode()" title="切換深色模式">🌙</button>
-        <button class="fab-item" onclick="exportData()" title="匯出進度">📤</button>
-        <button class="fab-item" onclick="importData()" title="匯入進度">📥</button>
+        <button class="fab-item fab-pill" onclick="exportData()" title="匯出進度">📤 匯出進度</button>
+        <button class="fab-item fab-pill" onclick="importData()" title="匯入進度">📥 匯入進度</button>
+        
+        <button id="fab-dark-mode" class="fab-item" onclick="toggleDarkMode()" title="切換深色模式">🌙</button>
     </div>
     <button class="fab-btn" onclick="toggleFabMenu()" title="設定與功能">⚙️</button>
 </div>
