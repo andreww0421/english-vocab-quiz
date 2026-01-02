@@ -6,6 +6,7 @@
     <title>國中英語單字測驗</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
@@ -21,8 +22,7 @@
             </select>
         </div>
         <button class="icon-btn" onclick="toggleSound()" id="btn-sound" title="切換音效">🔊</button>
-        <button class="icon-btn" onclick="toggleDarkMode()" title="切換深色模式">🌙</button>
-    </div>
+        </div>
 
     <div class="progress-container">
         <div class="progress-bar" id="total-progress"></div>
@@ -139,6 +139,15 @@
         <button class="btn" onclick="goBackToHome()">回首頁</button>
         <div class="result-details" id="review-list"></div>
     </div>
+</div>
+
+<div class="fab-container">
+    <div class="fab-menu hidden" id="fab-menu">
+        <button class="fab-item" onclick="toggleDarkMode()" title="切換深色模式">🌙</button>
+        <button class="fab-item" onclick="exportData()" title="匯出進度">📤</button>
+        <button class="fab-item" onclick="importData()" title="匯入進度">📥</button>
+    </div>
+    <button class="fab-btn" onclick="toggleFabMenu()" title="設定與功能">⚙️</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
