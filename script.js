@@ -3,7 +3,7 @@ let vocabData = [];
 let currentMode = ''; 
 let selectedUnits = [];
 let ALL_UNITS = [];
-let mistakeList = []; // 儲存錯題 ID
+let mistakeList = []; 
 
 let questionList = [];
 let currentIndex = 0;
@@ -17,7 +17,7 @@ let timeLimit = 10;
 let timeRemaining = 10;
 let isProcessing = false;
 let ttsRate = 1.0; 
-let isSoundOn = true; // 音效開關
+let isSoundOn = true; 
 
 // 單字卡變數
 let flashcardList = [];
@@ -38,7 +38,8 @@ window.onload = function() {
 
     loadUserSettings();
     setupKeyboardShortcuts();
-
+    
+    // 嘗試讀取快取
     const cachedData = localStorage.getItem('cachedVocabData');
     if (cachedData) {
         try {
@@ -84,9 +85,7 @@ function loadUserSettings() {
     if (isDarkMode) document.body.classList.add('dark-mode');
 
     const soundSetting = localStorage.getItem('soundOn');
-    if (soundSetting !== null) {
-        isSoundOn = (soundSetting === 'true');
-    }
+    if (soundSetting !== null) isSoundOn = (soundSetting === 'true');
     updateSoundBtn();
 }
 
@@ -141,10 +140,12 @@ function processData(data) {
     updateRangeUI();
 }
 
+// ★★★ 更新：生成帶有兩個標記的按鈕 ★★★
 function generateRangeButtons() {
     const container = document.getElementById('range-container');
     if (!container) return;
     container.innerHTML = ''; 
+
     const books = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 'Other': [] };
     ALL_UNITS.forEach(unit => {
         let bookNum = 'Other';
@@ -154,6 +155,7 @@ function generateRangeButtons() {
         if (!books[bookNum]) books[bookNum] = [];
         books[bookNum].push(unit);
     });
+
     [1, 2, 3, 4, 5, 6, 'Other'].forEach(bookNum => {
         const unitsInBook = books[bookNum];
         if (unitsInBook && unitsInBook.length > 0) {
@@ -165,15 +167,23 @@ function generateRangeButtons() {
             section.appendChild(title);
             const grid = document.createElement('div');
             grid.className = 'unit-grid';
+
             unitsInBook.forEach(unit => {
                 const div = document.createElement('div');
                 div.className = 'range-card'; 
                 div.id = 'btn-' + unit;
                 div.onclick = function() { toggleUnit(unit); };
+                
                 let shortName = unit;
                 if (unit.startsWith('B')) shortName = unit.replace(/^B\d+/, '').replace('U', 'Unit ');
                 else if (unit.startsWith('U')) shortName = unit.replace('U', 'Unit ');
-                div.innerHTML = `<span>${shortName}</span><span class="check-mark hidden" id="check-${unit}">✔</span>`;
+
+                // 產生兩個標記：mixed(右上), spell(左上)
+                div.innerHTML = `
+                    <span>${shortName}</span>
+                    <span class="check-mark pos-mixed hidden" id="check-mixed-${unit}">✔</span>
+                    <span class="check-mark pos-spell hidden" id="check-spell-${unit}">✔</span>
+                `;
                 grid.appendChild(div);
             });
             section.appendChild(grid);
@@ -206,24 +216,49 @@ function updateRangeUI() {
     warningEl.style.display = (selectedUnits.length === 0) ? 'block' : 'none';
 }
 
+// ★★★ 更新：檢查並顯示 Mixed 和 Spelling 的狀態 ★★★
 function updateCheckmarks() {
-    ALL_UNITS.forEach(r => {
-        const checkEl = document.getElementById('check-' + r);
-        if (checkEl) {
-            checkEl.classList.add('hidden');
-            checkEl.classList.remove('perfect');
-            checkEl.textContent = '✔';
+    ALL_UNITS.forEach(unit => {
+        // 1. 處理 Mixed (選擇題) - 右上
+        const checkMixed = document.getElementById('check-mixed-' + unit);
+        if (checkMixed) {
+            checkMixed.className = 'check-mark pos-mixed hidden'; // 重置
+            checkMixed.textContent = '✔';
 
-            // 1. 檢查 100% 完美通關
-            if (localStorage.getItem('perfect_' + r) === 'true') {
-                checkEl.textContent = '👑';
-                checkEl.classList.add('perfect');
-                checkEl.classList.remove('hidden');
-            } 
-            // 2. 檢查 80% 通過
-            else if (localStorage.getItem('pass_' + r) === 'true') {
-                checkEl.textContent = '✔';
-                checkEl.classList.remove('hidden');
+            // 檢查是否是舊資料 (相容性：如果是舊的 pass_U1，視為 Mixed 通過)
+            const isOldPass = localStorage.getItem('pass_' + unit) === 'true';
+            const isOldPerfect = localStorage.getItem('perfect_' + unit) === 'true';
+            
+            // 讀取新資料
+            const isMixedPass = localStorage.getItem('pass_mixed_' + unit) === 'true';
+            const isMixedPerfect = localStorage.getItem('perfect_mixed_' + unit) === 'true';
+
+            if (isMixedPerfect || isOldPerfect) {
+                checkMixed.textContent = '👑';
+                checkMixed.classList.add('perfect-mixed');
+                checkMixed.classList.remove('hidden');
+            } else if (isMixedPass || isOldPass) {
+                checkMixed.textContent = '✔';
+                checkMixed.classList.remove('hidden');
+            }
+        }
+
+        // 2. 處理 Spelling (拼字) - 左上
+        const checkSpell = document.getElementById('check-spell-' + unit);
+        if (checkSpell) {
+            checkSpell.className = 'check-mark pos-spell hidden'; // 重置
+            checkSpell.textContent = '✔';
+
+            const isSpellPass = localStorage.getItem('pass_spell_' + unit) === 'true';
+            const isSpellPerfect = localStorage.getItem('perfect_spell_' + unit) === 'true';
+
+            if (isSpellPerfect) {
+                checkSpell.textContent = '💎';
+                checkSpell.classList.add('perfect-spell');
+                checkSpell.classList.remove('hidden');
+            } else if (isSpellPass) {
+                checkSpell.textContent = '✔';
+                checkSpell.classList.remove('hidden');
             }
         }
     });
@@ -258,32 +293,27 @@ function speakText(text) {
     }
 }
 
-// === ★★★ 音效系統 (C大調爬升) ★★★ ===
+// === 音效系統 (C大調爬升) ===
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
     if (!isSoundOn) return;
     if (audioCtx.state === 'suspended') audioCtx.resume();
-
     const now = audioCtx.currentTime;
 
     if (type === 'correct') {
         let currentLevel = combo + 1;
         if (currentLevel > 10) currentLevel = 10; 
-
-        // C大調音階: C5, D5, E5, G5, A5, C6, D6, E6, G6, C7
         const frequencies = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51, 1567.98, 2093.00];
         const freq = frequencies[currentLevel - 1];
 
         if (currentLevel < 10) {
-            // 單音爬升
             const oscType = currentLevel < 5 ? 'sine' : 'triangle'; 
             playNote(freq, now, 0.15, oscType);
         } else {
-            // Combo 10+: 激昂和弦 (C Major Chord)
-            playNote(freq, now, 0.4, 'triangle');       // C7
-            playNote(freq * 1.25, now, 0.4, 'triangle'); // E7
-            playNote(freq * 1.5, now, 0.4, 'triangle');  // G7
+            playNote(freq, now, 0.4, 'triangle');       
+            playNote(freq * 1.25, now, 0.4, 'triangle'); 
+            playNote(freq * 1.5, now, 0.4, 'triangle');  
         }
 
     } else if (type === 'wrong') {
@@ -292,19 +322,17 @@ function playSound(type) {
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(150, now);
         osc.frequency.linearRampToValueAtTime(100, now + 0.3);
-        
         gainNode.gain.setValueAtTime(0.2, now);
         gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
-        
         osc.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + 0.3);
 
     } else if (type === 'pass') {
-        playNote(523.25, now, 0.1, 'sine'); // C5
-        playNote(659.25, now + 0.1, 0.1, 'sine'); // E5
-        playNote(783.99, now + 0.2, 0.3, 'sine'); // G5
+        playNote(523.25, now, 0.1, 'sine');
+        playNote(659.25, now + 0.1, 0.1, 'sine');
+        playNote(783.99, now + 0.2, 0.3, 'sine');
     } else if (type === 'fail') {
         playNote(400, now, 0.2, 'triangle'); 
         playNote(300, now + 0.2, 0.4, 'triangle'); 
@@ -316,18 +344,13 @@ function playNote(freq, time, duration, type='sine') {
     const gain = audioCtx.createGain();
     osc.type = type;
     osc.frequency.value = freq;
-    
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-    
     gain.gain.setValueAtTime(0.2, time);
     gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
-    
     osc.start(time);
     osc.stop(time + duration);
 }
-
-// ==============================
 
 function goBackToHome() {
     clearInterval(timerInterval);
@@ -341,7 +364,7 @@ function goBackToHome() {
     currentMode = ''; 
     updateMistakeBtn();
     
-    // ★★★ 確保回到首頁時，重新檢查所有勾勾與皇冠 ★★★
+    // 刷新圖示
     updateCheckmarks();
 }
 
@@ -586,8 +609,6 @@ function finishQuiz() {
     document.getElementById('combo-box').classList.remove('combo-active');
 
     const percentage = Math.round((score / questionList.length) * 100);
-    
-    // 儲存成績紀錄
     saveQuizResult(percentage);
 
     let rangeTitle = "";
@@ -604,13 +625,17 @@ function finishQuiz() {
         playSound('pass'); 
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
         
-        // ★★★ 判斷 100% 完美通關 ★★★
-        // 只有當「只選擇了一個單元」時，才紀錄該單元的通過狀態
+        // ★★★ 更新：區分 Mixed 和 Spelling 紀錄 ★★★
         if (currentMode !== 'mistake' && selectedUnits.length === 1) {
             const unitName = selectedUnits[0];
-            localStorage.setItem('pass_' + unitName, 'true'); // 80% 通過
+            const type = (currentMode === 'spelling') ? 'spell_' : 'mixed_';
+            
+            // 紀錄通過 (80%)
+            localStorage.setItem('pass_' + type + unitName, 'true');
+
+            // 紀錄完美 (100%)
             if (percentage === 100) {
-                localStorage.setItem('perfect_' + unitName, 'true'); // 100% 完美
+                localStorage.setItem('perfect_' + type + unitName, 'true');
                 msgDiv.innerHTML += '<br><span style="color:#f1c40f; font-size:1.2rem;">👑 完美全對！太強了！ 👑</span>';
             }
         }
@@ -725,7 +750,7 @@ function renderCharts() {
 
     let passedCount = 0;
     ALL_UNITS.forEach(u => {
-        if (localStorage.getItem('pass_' + u) === 'true') passedCount++;
+        if (localStorage.getItem('pass_mixed_' + u) === 'true' || localStorage.getItem('pass_spell_' + u) === 'true') passedCount++;
     });
     const totalCount = ALL_UNITS.length;
     const notPassed = totalCount - passedCount;
