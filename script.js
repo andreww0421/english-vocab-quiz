@@ -3,7 +3,7 @@ let vocabData = [];
 let currentMode = ''; 
 let selectedUnits = [];
 let ALL_UNITS = [];
-let mistakeList = []; 
+let mistakeList = []; // 儲存錯題 ID
 
 let questionList = [];
 let currentIndex = 0;
@@ -17,7 +17,7 @@ let timeLimit = 10;
 let timeRemaining = 10;
 let isProcessing = false;
 let ttsRate = 1.0; 
-let isSoundOn = true; 
+let isSoundOn = true; // 音效開關
 
 // 單字卡變數
 let flashcardList = [];
@@ -77,13 +77,19 @@ function setupKeyboardShortcuts() {
 }
 
 function loadUserSettings() {
+    // 1. 載入錯題
     const savedMistakes = localStorage.getItem('mistakeList');
     if (savedMistakes) mistakeList = JSON.parse(savedMistakes);
     updateMistakeBtn();
 
+    // 2. 載入深色模式
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (isDarkMode) document.body.classList.add('dark-mode');
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+    }
+    updateDarkModeIcon(); // 初始化圖示
 
+    // 3. 載入音效設定
     const soundSetting = localStorage.getItem('soundOn');
     if (soundSetting !== null) isSoundOn = (soundSetting === 'true');
     updateSoundBtn();
@@ -177,7 +183,7 @@ function generateRangeButtons() {
                 if (unit.startsWith('B')) shortName = unit.replace(/^B\d+/, '').replace('U', 'Unit ');
                 else if (unit.startsWith('U')) shortName = unit.replace('U', 'Unit ');
 
-                // 產生兩個標記：mixed(右上), spell(左上)
+                // 生成雙成就標記
                 div.innerHTML = `
                     <span>${shortName}</span>
                     <span class="check-mark pos-mixed hidden" id="check-mixed-${unit}">✔</span>
@@ -223,8 +229,10 @@ function updateCheckmarks() {
             checkMixed.className = 'check-mark pos-mixed hidden'; 
             checkMixed.textContent = '✔';
 
+            // 相容舊資料
             const isOldPass = localStorage.getItem('pass_' + unit) === 'true';
             const isOldPerfect = localStorage.getItem('perfect_' + unit) === 'true';
+            
             const isMixedPass = localStorage.getItem('pass_mixed_' + unit) === 'true';
             const isMixedPerfect = localStorage.getItem('perfect_mixed_' + unit) === 'true';
 
@@ -259,10 +267,20 @@ function updateCheckmarks() {
     });
 }
 
+// === 深色模式與圖示更新 ===
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-    // 如果選單打開，切換模式後可能需要關閉選單，這裡選擇保持開啟
+    updateDarkModeIcon();
+}
+
+function updateDarkModeIcon() {
+    const btn = document.getElementById('fab-dark-mode');
+    if (btn) {
+        const isDark = document.body.classList.contains('dark-mode');
+        // 深色模式下顯示太陽(切回亮色)，亮色模式下顯示月亮(切回深色)
+        btn.textContent = isDark ? '☀️' : '🌙';
+    }
 }
 
 function toggleSound() {
@@ -348,6 +366,7 @@ function playNote(freq, time, duration, type='sine') {
     osc.stop(time + duration);
 }
 
+// === 導航功能 ===
 function goBackToHome() {
     clearInterval(timerInterval);
     window.speechSynthesis.cancel();
@@ -360,7 +379,7 @@ function goBackToHome() {
     currentMode = ''; 
     updateMistakeBtn();
     
-    // 刷新圖示
+    // 強制刷新首頁圖示
     updateCheckmarks();
 }
 
@@ -621,20 +640,17 @@ function finishQuiz() {
         playSound('pass'); 
         msgDiv.innerHTML = '<span class="result-pass">恭喜通過！ (Pass)</span>';
         
-        // 區分 Mixed 和 Spelling 紀錄
         if (currentMode !== 'mistake' && selectedUnits.length === 1) {
             const unitName = selectedUnits[0];
             const type = (currentMode === 'spelling') ? 'spell_' : 'mixed_';
             
-            // 紀錄通過 (80%)
+            // 紀錄通過
             localStorage.setItem('pass_' + type + unitName, 'true');
 
-            // 紀錄完美 (100%)
+            // 紀錄完美
             if (percentage === 100) {
                 localStorage.setItem('perfect_' + type + unitName, 'true');
                 msgDiv.innerHTML += '<br><span style="color:#f1c40f; font-size:1.2rem;">👑 完美全對！太強了！ 👑</span>';
-                
-                // ★★★ 觸發彩帶特效 ★★★
                 fireConfetti();
             }
         }
@@ -772,8 +788,7 @@ function renderCharts() {
     });
 }
 
-// === ★★★ 新功能：資料備份與還原 ★★★ ===
-
+// === 資料備份與還原 ===
 function exportData() {
     const data = {};
     for (let i = 0; i < localStorage.length; i++) {
@@ -815,9 +830,8 @@ function importData() {
     }
 }
 
-// === ★★★ 新功能：彩帶特效 ★★★ ===
+// === 彩帶特效 ===
 function fireConfetti() {
-    // 發射左邊
     confetti({
         origin: { x: 0.1, y: 0.8 },
         angle: 60,
@@ -825,7 +839,6 @@ function fireConfetti() {
         particleCount: 100,
         colors: ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71']
     });
-    // 發射右邊
     confetti({
         origin: { x: 0.9, y: 0.8 },
         angle: 120,
@@ -835,7 +848,7 @@ function fireConfetti() {
     });
 }
 
-// === ★★★ 新功能：懸浮選單開關 ★★★ ===
+// === 懸浮選單開關 ===
 function toggleFabMenu() {
     const menu = document.getElementById('fab-menu');
     menu.classList.toggle('hidden');
