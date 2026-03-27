@@ -79,7 +79,16 @@ function setupKeyboardShortcuts() {
 function loadUserSettings() {
     // 1. 載入錯題
     const savedMistakes = localStorage.getItem('mistakeList');
-    if (savedMistakes) mistakeList = JSON.parse(savedMistakes);
+    if (savedMistakes) {
+        try {
+            mistakeList = JSON.parse(savedMistakes)
+                .map(id => Number.parseInt(id, 10))
+                .filter(Number.isInteger);
+        } catch (error) {
+            console.error("Failed to read mistakeList", error);
+            mistakeList = [];
+        }
+    }
     updateMistakeBtn();
 
     // 2. 載入深色模式
@@ -93,6 +102,65 @@ function loadUserSettings() {
     const soundSetting = localStorage.getItem('soundOn');
     if (soundSetting !== null) isSoundOn = (soundSetting === 'true');
     updateSoundBtn();
+}
+
+function getCellValue(item, keys) {
+    for (const key of keys) {
+        if (!Object.prototype.hasOwnProperty.call(item, key)) continue;
+        const value = item[key];
+        if (value === undefined || value === null) continue;
+        const text = String(value).trim();
+        if (text !== '') return text;
+    }
+    return '';
+}
+
+function normalizeVocabRows(rows) {
+    const usedIds = new Set();
+
+    return (Array.isArray(rows) ? rows : [])
+        .map((item, index) => {
+            const en = getCellValue(item, ['en', 'EN', 'word', 'Word', 'english', 'English', '英文']);
+            const zh = getCellValue(item, ['zh', 'ZH', 'meaning', 'Meaning', 'chinese', 'Chinese', '中文']);
+            const unit = getCellValue(item, ['unit', 'Unit', 'lesson', 'Lesson', '範圍', '單元']) || 'Unknown';
+            const ph = getCellValue(item, ['ph', 'PH', 'phonetic', 'Phonetic', '音標']);
+
+            let normalizedId = Number.parseInt(getCellValue(item, ['id', 'ID', 'Id']), 10);
+            if (!Number.isInteger(normalizedId) || normalizedId <= 0 || usedIds.has(normalizedId)) {
+                normalizedId = index + 1;
+                while (usedIds.has(normalizedId)) normalizedId++;
+            }
+            usedIds.add(normalizedId);
+
+            return { id: normalizedId, unit, en, ph, zh };
+        })
+        .filter(item => item.en && item.zh);
+}
+
+function shuffleArray(items) {
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+function buildQuizOptions(currentQ, optionCount = 4) {
+    const sameUnitPool = shuffleArray(
+        vocabData.filter(item => item.id !== currentQ.id && item.unit === currentQ.unit)
+    );
+    const fallbackPool = shuffleArray(
+        vocabData.filter(item => item.id !== currentQ.id && item.unit !== currentQ.unit)
+    );
+
+    const options = [currentQ];
+    for (const candidate of [...sameUnitPool, ...fallbackPool]) {
+        if (options.length >= optionCount) break;
+        if (!options.some(item => item.id === candidate.id)) options.push(candidate);
+    }
+
+    return shuffleArray(options);
 }
 
 function updateMistakeBtn() {
@@ -111,15 +179,7 @@ function loadGoogleSheetData() {
         download: true,
         header: true,
         complete: function(results) {
-            const newData = results.data
-                .filter(item => item.en && item.zh)
-                .map(item => ({
-                    id: parseInt(item.id),
-                    unit: item.unit ? item.unit.trim() : "Unknown",
-                    en: item.en.trim(),
-                    ph: item.ph ? item.ph.trim() : "",
-                    zh: item.zh.trim()
-                }));
+            const newData = normalizeVocabRows(results.data);
             if (newData.length === 0) return;
             localStorage.setItem('cachedVocabData', JSON.stringify(newData));
             if (vocabData.length === 0 || JSON.stringify(vocabData) !== JSON.stringify(newData)) {
@@ -136,7 +196,8 @@ function loadGoogleSheetData() {
 }
 
 function processData(data) {
-    vocabData = data;
+    vocabData = normalizeVocabRows(data);
+    localStorage.setItem('cachedVocabData', JSON.stringify(vocabData));
     const unitSet = new Set(vocabData.map(item => item.unit));
     ALL_UNITS = Array.from(unitSet).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
     if (selectedUnits.length === 0) selectedUnits = [...ALL_UNITS];
@@ -473,21 +534,14 @@ function renderQuestion() {
             qTextEl.textContent = currentQ.zh;
         }
 
-        let options = [currentQ];
-        let safetyCounter = 0;
-        while (options.length < 4 && safetyCounter < 100) {
-            const randomItem = vocabData[Math.floor(Math.random() * vocabData.length)];
-            if (!options.some(o => o.id === randomItem.id)) options.push(randomItem);
-            safetyCounter++;
-        }
-        options.sort(() => 0.5 - Math.random());
+        const options = buildQuizOptions(currentQ);
 
         optionsEl.innerHTML = '';
         options.forEach(opt => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-option';
             btn.textContent = (currentQuestionMode === 'en-zh') ? opt.zh : opt.en;
-            btn.dataset.id = opt.id;
+            btn.dataset.id = String(opt.id);
             btn.onclick = () => { if(!isProcessing) checkAnswer(btn, opt.id, currentQ.id); };
             optionsEl.appendChild(btn);
         });
@@ -525,7 +579,7 @@ function handleTimeOut() {
 function checkAnswer(btnElement, selectedId, correctId) {
     clearInterval(timerInterval);
     isProcessing = true;
-    const isCorrect = selectedId === correctId;
+    const isCorrect = Number(selectedId) === Number(correctId);
     const allBtns = document.querySelectorAll('.btn-option');
     allBtns.forEach(b => b.disabled = true);
 
@@ -537,7 +591,7 @@ function checkAnswer(btnElement, selectedId, correctId) {
         btnElement.classList.add('btn-wrong');
         playSound('wrong'); 
         allBtns.forEach(b => {
-            if(parseInt(b.dataset.id) === correctId) b.classList.add('btn-correct');
+            if (Number(b.dataset.id) === Number(correctId)) b.classList.add('btn-correct');
         });
     }
     showFeedback(isCorrect);
